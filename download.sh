@@ -153,9 +153,12 @@ setup_fail() {
   printf "  ${FAINT}github.com/onion3130/downterm/issues${R}\n"
   printf "\n  ${FAINT}press any key...${R}\n"
   read -rn1 -s
+  return 1
 }
 
 do_setup() {
+  # Disable -e inside this function so we can handle errors manually
+  set +e
   clear
   printf "\n"
   printf "  ${ACC}${B}downterm${R}  ${FAINT}setup${R}\n"
@@ -171,7 +174,7 @@ do_setup() {
     printf "  ${FAINT}cannot determine what to fetch. reinstall downterm.${R}\n"
     printf "\n  ${FAINT}press any key...${R}\n"
     read -rn1 -s
-    return
+    return 1
   fi
 
   # detect platform key in checksums.txt
@@ -216,15 +219,18 @@ do_setup() {
         printf "  ${GOOD}yt-dlp verified.${R}\n"
       else
         rm -f "$myytdlp.tmp"
-        setup_fail; return
+        setup_fail
+        return 1
       fi
     else
       printf "  ${BAD}download failed for yt-dlp.${R}\n"
-      setup_fail; return
+      setup_fail
+      return 1
     fi
   else
     printf "  ${BAD}no checksum entry for $platkey.${R}\n"
-    setup_fail; return
+    setup_fail
+    return 1
   fi
 
   # ffmpeg: prefer system, warn-only if missing
@@ -269,7 +275,7 @@ do_setup() {
   printf "  ${GOOD}setup complete.${R}  ${FAINT}you can now paste a url.${R}\n"
   printf "\n  ${FAINT}press any key...${R}\n"
   read -rn1 -s
-  return
+  return 0
 }
 
 show_help() {
