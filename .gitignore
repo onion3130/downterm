@@ -1,5 +1,7 @@
 # Local history / state
 .downterm_history
+.downterm_last.txt
+.downterm_archive.txt
 *.part
 *.temp
 

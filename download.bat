@@ -1,7 +1,15 @@
 @echo off
 setlocal enabledelayedexpansion
-title downterm v2.0
+title downterm v2.1
 cd /d "%~dp0"
+rem safety: never let the window close without a pause
+goto main
+:die
+echo.
+echo   %FAINT%window closing. press any key...%R%
+pause>nul
+exit /b 0
+:main
 
 for /F %%? in ('echo prompt $E^|cmd') do set "ESC=%%?"
 if not defined ESC set "ESC="
@@ -23,12 +31,12 @@ mode con: cols=60 lines=22
 :start
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.0%R%
+echo   %ACC%downterm%R%  %FAINT%v2.1%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%a quiet wrapper around yt-dlp.%R%
 echo.
-echo   %FAINT%? help   t test   q quit%R%
+echo   %FAINT%url  ? help  t test  r redo  q quit%R%
 echo.
 set /p "url=  %INK%<%R% "
 if "!url!"=="" (
@@ -43,9 +51,14 @@ if /i "!url!"=="?" goto help
 if /i "!url!"=="help" goto help
 if /i "!url!"=="t" goto selftest
 if /i "!url!"=="test" goto selftest
+if /i "!url!"=="r" goto redolast
+if /i "!url!"=="redo" goto redolast
 if /i "!url!"=="q" exit /b 0
 if /i "!url!"=="quit" exit /b 0
 if /i "!url!"=="exit" exit /b 0
+
+rem --- save last URL ---
+> ".downterm_last.txt" echo !url!
 
 rem --- detect batch mode (input is an existing file) ---
 if exist "!url!" (
@@ -56,10 +69,12 @@ if exist "!url!" (
 rem --- single download: ask type + quality ---
 call :asktype
 call :askquality
+goto dodownload
 
+:dodownload
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.0%R%
+echo   %ACC%downterm%R%  %FAINT%v2.1%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%acquiring%R%  %FAINT%!url!%R%
@@ -83,9 +98,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "!url!" "%
 set "ec=!errorlevel!"
 echo.
 echo   %HAIR%-----------------------------------------------%R%
-if !ec! equ 10019 (
-  echo   %FAINT%  skipped (already downloaded)%R%
-) else if !ec! gtr 0 (
+if !ec! gtr 0 (
   echo   %WARN%finished with warnings.%R%  %FAINT%see error code above%R%
 ) else (
   echo   %GOOD%saved.%R%  %FAINT%next to yt-dlp.exe%R%
@@ -97,20 +110,53 @@ goto start
 
 :asktype
 echo.
-set /p "MODE=  %MUT%video or audio? (v/a) [%INK%v%MUT%]%R% "
+echo   %FAINT%  v = video   a = audio (mp3)%R%
+set /p "MODE=  %MUT%video or audio? (v/a) [%ink%v%MUT%]%R% "
 if /i "!MODE!"=="a" set "MODE=audio" & goto :eof
 set "MODE=video"
 goto :eof
 
 :askquality
-if /i "!MODE!"=="audio" set "QUALITY=best" & goto :eof
+if /i "!MODE!"=="audio" (
+  echo.
+  echo   %FAINT%  b = best   m = medium   l = low%R%
+  set /p "QUALITY=  %MUT%audio quality? (b/m/l) [%ink%b%MUT%]%R% "
+  if /i "!QUALITY!"=="m" set "QUALITY=medium" & goto :eof
+  if /i "!QUALITY!"=="l" set "QUALITY=low" & goto :eof
+  set "QUALITY=abest"
+  goto :eof
+)
 echo.
+echo   %FAINT%  b = best   1 = 1080p   7 = 720p   4 = 480p%R%
 set /p "QUALITY=  %MUT%quality? (b/1/7/4) [%ink%b%MUT%]%R% "
 if /i "!QUALITY!"=="1" set "QUALITY=1080" & goto :eof
 if /i "!QUALITY!"=="7" set "QUALITY=720" & goto :eof
 if /i "!QUALITY!"=="4" set "QUALITY=480" & goto :eof
 set "QUALITY=best"
 goto :eof
+
+:redolast
+if not exist ".downterm_last.txt" (
+  echo.
+  echo   %FAINT%  no previous download to redo.%R%
+  echo   %FAINT%  press any key...%R%
+  pause>nul
+  goto start
+)
+set /p "url=" < ".downterm_last.txt"
+if "!url!"=="" (
+  echo.
+  echo   %FAINT%  no previous download to redo.%R%
+  echo   %FAINT%  press any key...%R%
+  pause>nul
+  goto start
+)
+echo.
+echo   %MUT%redoing:%R%  %FAINT%!url!%R%
+echo.
+call :asktype
+call :askquality
+goto dodownload
 
 :batchmode
 echo.
@@ -150,7 +196,7 @@ goto start
 :batchdownload
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.0%R%
+echo   %ACC%downterm%R%  %FAINT%v2.1%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%[!CURRENT!/!URLCOUNT!]%R%  %FAINT%!BATCHURL!%R%
@@ -161,9 +207,7 @@ echo.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "!BATCHURL!" "%FFARG%" "!MODE!" "!QUALITY!"
 set "ec=!errorlevel!"
 echo.
-if !ec! equ 10019 (
-  echo   %FAINT%  skipped (already downloaded)%R%
-) else if !ec! equ 0 (
+if !ec! equ 0 (
   echo   %GOOD%  saved.%R%
 ) else (
   echo   %WARN%  finished with warnings.%R%  %FAINT%see error code above%R%
@@ -213,7 +257,7 @@ echo   %GOOD%downloaded ok.%R%  %MUT%cleaning up...%R%
 echo.
 
 set "cleaned=0"
-for %%x in (*.mp4 *.mkv *.webm *.mp3 *.m4a) do (
+for %%x in (*.mp4 *.mkv *.mp3 *.m4a) do (
   if exist "%%x" (
     del /q "%%x" 2>nul
     set "cleaned=1"
@@ -241,12 +285,14 @@ echo     %INK%<%R%  %FAINT%url, then enter%R%
 echo     %INK%<%R%  %FAINT%urls.txt  (batch mode)%R%
 echo.
 echo   %MUT%prompts%R%
-echo     %INK%v/a%R%   %FAINT%video or audio (default: video)%R%
-echo     %INK%b/1/7/4%R%  %FAINT%best/1080p/720p/480p (default: best)%R%
+echo     %INK%v/a%R%     %FAINT%video or audio (default: video)%R%
+echo     %INK%b/1/7/4%R%  %FAINT%best/1080p/720p/480p%R%
+echo     %INK%b/m/l%R%    %FAINT%audio: best/medium/low%R%
 echo.
 echo   %MUT%commands%R%
 echo     %INK%?%R%   %FAINT%this screen%R%
-echo     %INK%t%R%   %FAINT%self-test (download a sample, then delete)%R%
+echo     %INK%t%R%   %FAINT%self-test (download sample, then delete)%R%
+echo     %INK%r%R%   %FAINT%redo last download%R%
 echo     %INK%q%R%   %FAINT%quit%R%
 echo.
 echo   %MUT%requires%R%
@@ -260,3 +306,6 @@ echo.
 echo   %FAINT%any key to go back.%R%
 pause>nul
 goto start
+
+rem catch-all: if flow ever falls through, don't close the window
+goto die

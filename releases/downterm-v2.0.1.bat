@@ -1,6 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
-title downterm v2.0
+title downterm v2.0.1
 cd /d "%~dp0"
 
 for /F %%? in ('echo prompt $E^|cmd') do set "ESC=%%?"
@@ -23,7 +23,7 @@ mode con: cols=60 lines=22
 :start
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.0%R%
+echo   %ACC%downterm%R%  %FAINT%v2.0.1%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%a quiet wrapper around yt-dlp.%R%
@@ -59,7 +59,7 @@ call :askquality
 
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.0%R%
+echo   %ACC%downterm%R%  %FAINT%v2.0.1%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%acquiring%R%  %FAINT%!url!%R%
@@ -97,7 +97,8 @@ goto start
 
 :asktype
 echo.
-set /p "MODE=  %MUT%video or audio? (v/a) [%INK%v%MUT%]%R% "
+echo   %FAINT%  v = video   a = audio (mp3)%R%
+set /p "MODE=  %MUT%video or audio? (v/a) [%ink%v%MUT%]%R% "
 if /i "!MODE!"=="a" set "MODE=audio" & goto :eof
 set "MODE=video"
 goto :eof
@@ -105,6 +106,7 @@ goto :eof
 :askquality
 if /i "!MODE!"=="audio" set "QUALITY=best" & goto :eof
 echo.
+echo   %FAINT%  b = best   1 = 1080p   7 = 720p   4 = 480p%R%
 set /p "QUALITY=  %MUT%quality? (b/1/7/4) [%ink%b%MUT%]%R% "
 if /i "!QUALITY!"=="1" set "QUALITY=1080" & goto :eof
 if /i "!QUALITY!"=="7" set "QUALITY=720" & goto :eof
@@ -150,7 +152,7 @@ goto start
 :batchdownload
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.0%R%
+echo   %ACC%downterm%R%  %FAINT%v2.0.1%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%[!CURRENT!/!URLCOUNT!]%R%  %FAINT%!BATCHURL!%R%

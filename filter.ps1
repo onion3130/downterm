@@ -7,34 +7,36 @@ param(
 $ErrorActionPreference = 'SilentlyContinue'
 
 # Build yt-dlp args based on mode + quality
+# Force mp4 video / mp3 audio - never webm
 if ($mode -eq "audio") {
-  $ytargs = @('-x','--audio-format','mp3','--audio-quality','0','-o','%(title)s.%(ext)s','--newline')
+  $aq = '0'
+  if ($quality -eq "medium") { $aq = '5' }
+  elseif ($quality -eq "low") { $aq = '9' }
+  $ytargs = @('-x','--audio-format','mp3','--audio-quality',$aq,'-o','%(title)s.%(ext)s','--newline')
 } else {
   $format = switch ($quality) {
-    "1080" { 'bv*[height<=1080]+ba/b[height<=1080]' }
-    "720"  { 'bv*[height<=720]+ba/b[height<=720]' }
-    "480"  { 'bv*[height<=480]+ba/b[height<=480]' }
-    default { 'bv*+ba/b' }
+    "1080" { 'bv*[ext=mp4][height<=1080]+ba[ext=m4a]/b[ext=mp4]/b' }
+    "720"  { 'bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4]/b' }
+    "480"  { 'bv*[ext=mp4][height<=480]+ba[ext=m4a]/b[ext=mp4]/b' }
+    default { 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b' }
   }
   $ytargs = @('-f',$format,'--merge-output-format','mp4','-o','%(title)s.%(ext)s','--newline')
 }
 
 if ($ff) { $ytargs += @('--ffmpeg-location',$ff) }
 if (Test-Path '.\deno.exe') { $ytargs += @('--js-runtimes','deno:.\deno.exe') }
-$ytargs += @('--download-archive','.downterm_archive.txt')
 $ytargs += $url
 
-# Suppress noisy output classes (we only want bar + errors + final status)
 $suppressPatterns = @(
-  '^\[youtube\]',          # extracting URL, downloading webpage, API JSON
-  '^\[info\]',             # format selection info
-  '^\[Merger\]',           # merging formats
-  '^\[Deleting\]',         # deleting original files
-  '^\[ExtractAudio\]',     # audio extraction status
-  '^\[EmbedSubtitle\]',    # subtitle embedding
-  '^\[Metadata\]',         # metadata embedding
-  'WARNING.*has already been downloaded',  # archive skip (we handle this ourselves)
-  'WARNING.*--download-archive'              # archive file creation notice
+  '^\[youtube\]',
+  '^\[info\]',
+  '^\[Merger\]',
+  '^\[Deleting\]',
+  '^\[ExtractAudio\]',
+  '^\[EmbedSubtitle\]',
+  '^\[Metadata\]',
+  '^\[download\]\s+Destination:',
+  'WARNING.*has already been downloaded'
 )
 
 function Should-Suppress($line) {
@@ -44,22 +46,20 @@ function Should-Suppress($line) {
   return $false
 }
 
-# Error code mapping
 function Get-ErrorCode($line) {
   if ($line -match 'Video unavailable')              { return @{code='ERR-01';msg='video unavailable (private/deleted)'} }
-  if ($line -match 'Private video')                   { return @{code='ERR-02';msg='private video — sign in required'} }
+  if ($line -match 'Private video')                   { return @{code='ERR-02';msg='private video - sign in required'} }
   if ($line -match 'Members-only')                    { return @{code='ERR-03';msg='members-only content'} }
   if ($line -match 'geo(?:graphically)? restricted')  { return @{code='ERR-04';msg='geo-restricted in your region'} }
-  if ($line -match 'age restricted')                  { return @{code='ERR-05';msg='age-restricted — needs cookies'} }
-  if ($line -match 'Sign in to confirm')              { return @{code='ERR-06';msg='bot detection — try again later'} }
+  if ($line -match 'age restricted')                  { return @{code='ERR-05';msg='age-restricted - needs cookies'} }
+  if ($line -match 'Sign in to confirm')              { return @{code='ERR-06';msg='bot detection - try again later'} }
   if ($line -match 'No video formats found')          { return @{code='ERR-07';msg='no downloadable formats found'} }
   if ($line -match 'HTTP Error 4')                    { return @{code='ERR-08';msg='HTTP 4xx from server'} }
   if ($line -match 'HTTP Error 5')                    { return @{code='ERR-09';msg='HTTP 5xx from server'} }
   if ($line -match 'Connection (timed out|refused)')  { return @{code='ERR-10';msg='connection failed'} }
   if ($line -match 'ffmpeg.*not.*found')              { return @{code='ERR-11';msg='ffmpeg executable missing'} }
   if ($line -match 'deno.*not.*found')                { return @{code='ERR-12';msg='deno runtime missing'} }
-  if ($line -match 'Unsupported URL')                 { return @{code='ERR-13';msg='unsupported URL — not a valid video link'} }
-  if ($line -match 'has already been downloaded')     { return @{code='SKIP';  msg='already downloaded'} }
+  if ($line -match 'Unsupported URL')                 { return @{code='ERR-13';msg='unsupported URL - not a valid video link'} }
   return @{code='ERR-00';msg='unknown error'}
 }
 
@@ -77,19 +77,31 @@ $p.StartInfo.RedirectStandardError = $true
 
 $lastBar = $false
 $errLine = ""
-$skipped = $false
 
 while (-not $p.StandardOutput.EndOfStream) {
   $line = $p.StandardOutput.ReadLine()
-  if ($line -match '\[download\]\s+([\d.]+)%') {
+  if ($line -match '\[download\]\s+([\d.]+)%.*?at\s+([\d.]+)([KMG]?)i?B/s.*?ETA\s+(.+)') {
+    $pct = [double]$matches[1]
+    $speedVal = [double]$matches[2]
+    $speedUnit = $matches[3]
+    $eta = $matches[4].Trim()
+    if ($speedUnit -eq 'M') { $speedMB = $speedVal }
+    elseif ($speedUnit -eq 'K') { $speedMB = [math]::Round($speedVal/1024, 2) }
+    elseif ($speedUnit -eq 'G') { $speedMB = [math]::Round($speedVal*1024, 2) }
+    else { $speedMB = [math]::Round($speedVal/1024/1024, 2) }
+    $n = [int][math]::Round(($pct/100)*30)
+    $filled = '#' * $n
+    $empty  = '-' * (30 - $n)
+    $bar = "`r  " + $filled + $empty + "  " + $pct.ToString('0.0') + "%  " + $speedMB.ToString('0.0') + " MB/s  ETA " + $eta + "   "
+    [Console]::Error.Write($bar)
+    $lastBar = $true
+  } elseif ($line -match '\[download\]\s+([\d.]+)%') {
     $pct = [double]$matches[1]
     $n = [int][math]::Round(($pct/100)*30)
     $filled = '#' * $n
     $empty  = '-' * (30 - $n)
     [Console]::Error.Write("`r  " + $filled + $empty + "  " + $pct.ToString('0.0') + "%   ")
     $lastBar = $true
-  } elseif ($line -match 'has already been downloaded') {
-    $skipped = $true
   } elseif (-not (Should-Suppress $line)) {
     if ($line -notmatch '^\s*$') {
       if ($lastBar) { [Console]::Error.WriteLine(''); $lastBar = $false }
@@ -99,18 +111,16 @@ while (-not $p.StandardOutput.EndOfStream) {
 }
 if ($lastBar) { [Console]::Error.WriteLine('') }
 
-# Read stderr for error messages
 $err = $p.StandardError.ReadToEnd()
-$errParts = @()
 if ($err) {
+  $errParts = @()
   foreach ($errLine in ($err -split "`n")) {
     if ($errLine -match '^\s*$') { continue }
     if (Should-Suppress $errLine) { continue }
-    # Try to map to a friendly error code
     $mapped = Get-ErrorCode $errLine
     if ($mapped.code -ne 'ERR-00') {
       [Console]::Error.WriteLine("")
-      [Console]::Error.WriteLine("  " + $mapped.code + " — " + $mapped.msg + "  ⟡  see github.com/onion3130/downterm/blob/main/docs/ERRORS.md")
+      [Console]::Error.WriteLine("  " + $mapped.code + " - " + $mapped.msg + "  *  see github.com/onion3130/downterm/blob/main/docs/ERRORS.md")
     } else {
       $errParts += $errLine
     }
@@ -121,18 +131,9 @@ if ($err) {
       [Console]::Error.WriteLine("  " + $ep.Trim())
     }
     [Console]::Error.WriteLine("")
-    [Console]::Error.WriteLine("  ERR-00 — unknown error  ⟡  see github.com/onion3130/downterm/blob/main/docs/ERRORS.md")
+    [Console]::Error.WriteLine("  ERR-00 - unknown error  *  see github.com/onion3130/downterm/blob/main/docs/ERRORS.md")
   }
 }
 
-if ($skipped -and $err -eq '') {
-  $skipped = $false
-  [Console]::Error.WriteLine("")
-  [Console]::Error.WriteLine("  SKIP — already downloaded  ⟡  see github.com/onion3130/downterm/blob/main/docs/ERRORS.md")
-}
-
 $p.WaitForExit()
-
-# Special exit code for "skipped" so download.bat can show the right message
-if ($skipped) { exit 10019 }
 exit $p.ExitCode

@@ -186,12 +186,12 @@ selftest() {
   printf "  ${HAIR}...............................................${R}\n"
   printf "\n"
   printf "  ${MUT}downloading test video...${R}\n"
-  printf "  ${FAINT}https://www.youtube.com/watch?v=y4gzlFhfvPQ${R}\n"
+  printf "  ${FAINT}https://www.youtube.com/watch?v=Rfyr7-dQnAg${R}\n"
   printf "\n"
   printf "  ${HAIR}-----------------------------------------------${R}\n"
   printf "\n"
 
-  bash "${SCRIPT_DIR}/filter.sh" "https://www.youtube.com/watch?v=y4gzlFhfvPQ" "$FFARG" "$YTDLP" "video" "best"
+  bash "${SCRIPT_DIR}/filter.sh" "https://www.youtube.com/watch?v=Rfyr7-dQnAg" "$FFARG" "$YTDLP" "video" "best"
   local ec=$?
   printf "\n"
   printf "  ${HAIR}-----------------------------------------------${R}\n"
