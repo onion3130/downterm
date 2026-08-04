@@ -2,31 +2,36 @@
 
 > a quiet wrapper around [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
-A minimal, styled Windows batch script that wraps yt-dlp into a clean little terminal experience. Paste a URL, press enter, get the file. No flags, no clutter, no noise.
+A minimal, styled terminal wrapper around yt-dlp. Paste a URL, pick video/audio and quality, get the file. No flags to memorize, no clutter, no noise.
 
 ---
 
 ## what it does
 
-- picks the **best video + best audio** stream
+- picks the **best video + best audio** stream (or audio-only mp3)
 - merges them into a single **mp4** (via ffmpeg)
-- saves the file next to `yt-dlp.exe`
-- shows a **clean progress bar** instead of spamming 5000 lines per download
+- **quality pick**: best / 1080p / 720p / 480p
+- **type pick**: video or audio
+- **batch mode**: paste `urls.txt` instead of a URL, it downloads all of them
+- **silent dedup**: already-downloaded videos are skipped automatically
+- shows a **clean progress bar** instead of spamming 5000 lines
 - stays open so you can grab another
 
 ## screenshots
 
 ```
-  downterm  v1.8
+  downterm  v2.0
   ...............................................
 
   a quiet wrapper around yt-dlp.
 
-  ? help   q quit
+  ? help   t test   q quit
 
   < https://youtube.com/watch?v=...
+    video or audio? (v/a) [v]
+    quality? (b/1/7/4) [b]
 
-  downterm  v1.8
+  downterm  v2.0
   ...............................................
 
   acquiring
@@ -34,11 +39,7 @@ A minimal, styled Windows batch script that wraps yt-dlp into a clean little ter
 
   -----------------------------------------------
 
-  [youtube] Extracting URL...
-  [info] Downloading 1 format(s): 401+251
-  [download] Destination: video.f401.mp4
-  ##################--------------  60.2%
-  ...
+  ######################-----------  75.3%
 
   -----------------------------------------------
   saved.  next to yt-dlp.exe
@@ -46,91 +47,121 @@ A minimal, styled Windows batch script that wraps yt-dlp into a clean little ter
   any key to run again.
 ```
 
-## setup
+Batch mode:
+```
+  < urls.txt
+    video or audio? (v/a) [v]
+    quality? (b/1/7/4) [b]
 
-### Option A — full install (recommended for most users)
-Download the bundled zip from the [v1.9 release](https://github.com/onion3130/downterm/releases/tag/v1.9): **`downterm-v1.9-full.zip`**. It comes with `yt-dlp.exe` and `ffmpeg.exe` included — no extra downloads, no PATH setup. Extract anywhere and run.
+  downterm  v2.0
+  ...............................................
 
-### Option B — from source (no binaries)
-Everything else is in the repo. Just clone and run:
+  [1/5] https://youtube.com/watch?v=...
+  -----------------------------------------------
+  ########################  91.2%
+  saved.
 
-```bat
-git clone https://github.com/onion3130/downterm.git
-cd downterm
-download.bat
+  [2/5] ...
+  ...
+
+  5 done.
 ```
 
-You'll need to supply your own `yt-dlp.exe` and `ffmpeg.exe`.
+## setup
+
+### Option A — full install (recommended)
+Download the bundled zip from the [latest release](https://github.com/onion3130/downterm/releases/latest) and extract. Binaries are included so it works with zero setup.
+
+- **Windows users** → `downterm-v2.0-windows.zip` (includes `yt-dlp.exe`, `ffmpeg.exe`, `deno.exe`)
+- **Linux/macOS users** → `downterm-v2.0-linux.tar.gz` (scripts only; uses system yt-dlp/ffmpeg/deno)
+- **Already have yt-dlp/ffmpeg/deno** → `downterm-v2.0-script-only.zip`
+
+### Option B — from source
+```bash
+git clone https://github.com/onion3130/downterm.git
+cd downterm
+# Windows
+download.bat
+# Linux/macOS
+chmod +x download.sh && ./download.sh
+```
 
 ## usage
 
-1. Double-click `download.bat`
-2. Paste a video URL
-3. Press Enter
-4. File saves next to `yt-dlp.exe`
+1. Run the script
+2. Paste a URL (or `urls.txt` for batch mode)
+3. Pick video/audio (`v`/`a`, default `v`)
+4. Pick quality (`b`/`1`/`7`/`4`, default `b`)
+5. File saves next to the script
 
 ## commands
 
 | key | action |
 |-----|--------|
-| `<url>` | download best video + audio, merged to mp4 |
+| `<url>` | download video or audio |
+| `<file.txt>` | batch mode: download all URLs from file |
 | `?` or `help` | open the help screen |
-| `t` or `test` | **self-test**: downloads a sample video, verifies it works, then deletes the file |
+| `t` or `test` | self-test: downloads a sample, verifies, then deletes |
 | `q` / `quit` / `exit` | close downterm |
+
+## prompts
+
+| key | meaning |
+|-----|--------|
+| `v` / `a` | video or audio (default: video) |
+| `b` / `1` / `7` / `4` | best / 1080p / 720p / 480p (default: best) |
 
 ## how the progress bar works
 
-yt-dlp normally spits out a new line for every 0.1% downloaded — hundreds of lines scrolling past. downterm pipes that output through `filter.ps1`, which parses the latest progress update and redraws a single line:
+yt-dlp normally prints a new line for every 0.1% downloaded. downterm pipes that output through `filter.ps1` (Windows) or `filter.sh` (Linux), which parses the latest progress update and redraws a single line:
 
 ```
   ####################----------  66.7%
 ```
 
-It updates in place with a carriage return, then shows any non-progress output (errors, info, warnings) above the bar. Your terminal stays clean.
-
 ## requirements
 
 ### Windows
 - Windows 10+ (for ANSI color support)
-- PowerShell (bundled with Windows 10+)
-- `yt-dlp.exe` — **included**
-- `ffmpeg.exe` — **included**
+- PowerShell (bundled with Windows)
+- `yt-dlp.exe` — included in Windows zip
+- `ffmpeg.exe` — included in Windows zip
+- `deno.exe` — included in Windows zip (for full YouTube format support)
 
 ### Linux / macOS
 ```bash
 chmod +x download.sh
 ./download.sh
 ```
-- `yt-dlp` (install: `pip install yt-dlp` or `sudo apt install yt-dlp`)
-- `ffmpeg` (install: `sudo apt install ffmpeg`)
+- `yt-dlp` — `pip install yt-dlp` or `sudo apt install yt-dlp`
+- `ffmpeg` — `sudo apt install ffmpeg`
+- `deno` — `curl -fsSL https://deno.land/install.sh | sh`
 - bash 4+ (for regex matching in the progress bar filter)
 
 ## bundled software (legal notes)
 
-This repo bundles two third-party binaries so it works out of the box:
-
 ### yt-dlp
 - License: The Unlicense (effectively public domain)
 - Source: https://github.com/yt-dlp/yt-dlp
-- Freely redistributable. No attribution required, but appreciated.
 
 ### ffmpeg
 - License: LGPL v2.1+
-- Source: https://ffmpeg.org
-- Build: gyan.dev essentials build (https://www.gyan.dev/ffmpeg/builds/)
+- Source: https://ffmpeg.org / https://www.gyan.dev/ffmpeg/builds/
 - Full license text: see [ffmpeg-LICENSE.txt](./ffmpeg-LICENSE.txt)
 
 ### deno
 - License: MIT
 - Source: https://github.com/denoland/deno
-- Purpose: JavaScript runtime for yt-dlp YouTube extraction (required for full format support)
+- Purpose: JavaScript runtime for yt-dlp YouTube extraction
 - Full license text: see [deno-LICENSE.txt](./deno-LICENSE.txt)
 
-All three are included in good faith as redistributable software. If you are the maintainer of any of them and want anything changed, open an issue.
+All three are freely redistributable. If you maintain any of these and want anything changed, open an issue.
 
 ## releases
 
-Each version is preserved in [`/releases`](./releases). The latest is [`download.bat`](./download.bat) (Windows) or [`download.sh`](./download.sh) (Linux/macOS).
+Each version is preserved in [`/releases`](./releases). Latest scripts:
+- Windows: [`download.bat`](./download.bat)
+- Linux/macOS: [`download.sh`](./download.sh)
 
 See all releases: https://github.com/onion3130/downterm/releases
 
@@ -143,7 +174,9 @@ See all releases: https://github.com/onion3130/downterm/releases
 - `v1.6` — fixed `'cho'` bug and post-entry layout
 - `v1.7` — clean full-redraw on entry, no jumble
 - `v1.8` — progress bar filter (`filter.ps1`), ffmpeg auto-detect
-- `v1.9` — **Linux support** (`download.sh` + `filter.sh`), **self-test** command (`t`)
+- `v1.9` — Linux support (`download.sh` + `filter.sh`), self-test (`t`)
+- `v1.9.1` — bundled deno.exe for full YouTube format support
+- `v2.0` — **type pick** (video/audio), **quality pick** (1080p/720p/480p), **batch mode** (urls.txt), **silent dedup** (archive)
 
 ## license
 
