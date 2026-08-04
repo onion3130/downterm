@@ -40,21 +40,34 @@ if exist "%~dp0downterm.conf" (
   )
 )
 
-rem --- Item 6: parse CLI flags (download.bat <url> [--mode=..] [--quality=..] [--output=..]) ---
+rem --- Item 6: parse CLI flags (download.bat <url> [--mode=..] [--quality=..] [--output=..] [--setup] [--version]) ---
 set "ARG_URL="
 set "ARG_MODE="
 set "ARG_QUALITY="
 set "ARG_OUTPUT="
+set "ARG_OP="
 set "NONFLAG=0"
 for %%a in (%*) do (
   set "TOK=%%a"
   if "!TOK:~0,7!"=="--mode="    set "ARG_MODE=!TOK:~7!"
   if "!TOK:~0,10!"=="--quality=" set "ARG_QUALITY=!TOK:~10!"
   if "!TOK:~0,9!"=="--output="  set "ARG_OUTPUT=!TOK:~9!"
+  if /i "!TOK!"=="--setup"      set "ARG_OP=setup"
+  if /i "!TOK!"=="--version"    set "ARG_OP=version"
   if not "!TOK:~0,2!"=="--" (
     set /a NONFLAG+=1
     if !NONFLAG! equ 1 set "ARG_URL=!TOK!"
   )
+)
+
+if /i "!ARG_OP!"=="version" (
+  echo downterm v2.2
+  exit /b 0
+)
+
+if /i "!ARG_OP!"=="setup" (
+  call :setup
+  exit /b 0
 )
 
 rem --- if URL + complete config/flags, run non-interactively ---
@@ -390,7 +403,7 @@ if exist "ffmpeg.exe" (
   call :verifyhash "ffmpeg.zip.tmp" "%FFHASH%" "ffmpeg.zip"
   if errorlevel 1 goto setupfail
   echo   %MUT%extracting ffmpeg.exe from zip...%R%
-  powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[System.IO.Compression.ZipFile]::OpenRead((Resolve-Path 'ffmpeg.zip').Path); $e=$z.Entries | Where-Object { $_.FullName -like 'bin/ffmpeg.exe' -or $_.FullName -like '*/bin/ffmpeg.exe' } | Select-Object -First 1; if ($e) { [System.IO.Compression.ZipFileExtensions]::ExtractToFile($e, 'ffmpeg.exe', $true) } else { Write-Output 'NOTFOUND' }; $z.Dispose()" 2>nul
+  call :extractffmpeg
   if exist "ffmpeg.exe.tmp" del /q "ffmpeg.exe.tmp" 2>nul
   if exist "ffmpeg.zip" del /q "ffmpeg.zip" 2>nul
   if not exist "ffmpeg.exe" (
@@ -411,7 +424,7 @@ if exist "deno.exe" (
   call :verifyhash "deno.zip.tmp" "%DENOHASH%" "deno.zip"
   if errorlevel 1 goto setupfail
   echo   %MUT%extracting deno.exe from zip...%R%
-  powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[System.IO.Compression.ZipFile]::OpenRead((Resolve-Path 'deno.zip').Path); $e=$z.Entries | Where-Object { $_.FullName -eq 'deno.exe' } | Select-Object -First 1; if ($e) { [System.IO.Compression.ZipFileExtensions]::ExtractToFile($e, 'deno.exe', $true) } else { Write-Output 'NOTFOUND' }; $z.Dispose()" 2>nul
+  call :extractdeno
   if exist "deno.zip" del /q "deno.zip" 2>nul
   if not exist "deno.exe" (
     echo   %BAD%deno.exe not found in deno zip.%R%
@@ -465,6 +478,14 @@ echo   %FAINT%expected: %EXPECTED%%R%
 echo   %FAINT%actual:   !ACTUAL!%R%
 del /q "%TMPF%" 2>nul
 exit /b 1
+
+:extractffmpeg
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[System.IO.Compression.ZipFile]::OpenRead((Resolve-Path 'ffmpeg.zip').Path); $e=$z.Entries | Where-Object { $_.FullName -like 'bin/ffmpeg.exe' -or $_.FullName -like '*/bin/ffmpeg.exe' } | Select-Object -First 1; if ($e) { [System.IO.Compression.ZipFileExtensions]::ExtractToFile($e, 'ffmpeg.exe', $true) } else { Write-Output 'NOTFOUND' }; $z.Dispose()"
+exit /b 0
+
+:extractdeno
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $z=[System.IO.Compression.ZipFile]::OpenRead((Resolve-Path 'deno.zip').Path); $e=$z.Entries | Where-Object { $_.FullName -eq 'deno.exe' } | Select-Object -First 1; if ($e) { [System.IO.Compression.ZipFileExtensions]::ExtractToFile($e, 'deno.exe', $true) } else { Write-Output 'NOTFOUND' }; $z.Dispose()"
+exit /b 0
 
 :help
 cls

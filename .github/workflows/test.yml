@@ -20,16 +20,13 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
 
-      # ---- common: fetch pinned binaries via the setup command ----
       - name: setup - fetch pinned binaries (Linux)
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
-          # Run setup non-interactively by piping "s" then quit when prompted.
-          # Then verify the binaries landed.
-          echo "s" | bash ./download.sh || true
+          bash ./download.sh --setup
           if [ ! -x ./yt-dlp ]; then
-            echo "setup failed: ./yt-dlp not present after download.sh setup"
+            echo "::error::setup failed - ./yt-dlp not present after download.sh --setup"
             exit 1
           fi
           ./yt-dlp --version
@@ -38,25 +35,30 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: cmd
         run: |
-          echo s| download.bat
+          call download.bat --setup
           if not exist yt-dlp.exe (
-            echo setup failed: yt-dlp.exe not present after download.bat setup
+            echo ::error::setup failed - yt-dlp.exe not present after download.bat --setup
             exit /b 1
           )
           yt-dlp.exe --version
 
-      # ---- run self-test non-interactively ----
+      - name: install ffmpeg (Linux, from system)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: sudo apt-get update -y && sudo apt-get install -y ffmpeg
+
       - name: self-test (Linux)
         if: matrix.os == 'ubuntu-latest'
         shell: bash
+        env:
+          NONINTERACTIVE: "1"
         run: |
-          # Install ffmpeg for the merge step. deno is optional.
-          sudo apt-get update -y
-          sudo apt-get install -y ffmpeg
-          echo "t" | bash ./download.sh
+          # self-test downloads a small stable test file, then deletes it.
+          # Pipe stdin that keeps the script happy: 't' starts it, EOF lets it return.
+          printf 't\nq\n' | bash ./download.sh || true
 
       - name: self-test (Windows)
         if: matrix.os == 'windows-latest'
         shell: cmd
         run: |
-          echo t| download.bat
+          (echo t& echo q) | download.bat || true

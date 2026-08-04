@@ -39,11 +39,14 @@ ARG_URL=""
 ARG_MODE=""
 ARG_QUALITY=""
 ARG_OUTPUT=""
+ARG_OP=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --mode=*)    ARG_MODE="${1#--mode=}" ;;
     --quality=*) ARG_QUALITY="${1#--quality=}" ;;
     --output=*)  ARG_OUTPUT="${1#--output=}" ;;
+    --setup)     ARG_OP="setup" ;;
+    --version)   ARG_OP="version" ;;
     --help|-h)   ARG_URL="--help" ;;
     --*)         ;;  # ignore unknown flags
     *)           if [ -z "$ARG_URL" ]; then ARG_URL="$1"; fi ;;
@@ -51,20 +54,14 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-# Check for yt-dlp
-if ! command -v yt-dlp >/dev/null 2>&1; then
-  if [ -x "${SCRIPT_DIR}/yt-dlp" ]; then
-    YTDLP="${SCRIPT_DIR}/yt-dlp"
-  else
-    printf "${BAD}  yt-dlp not found.${R}\n"
-    printf "${FAINT}  run 's' to fetch it, or see bin/checksums.txt${R}\n"
-    exit 1
-  fi
-else
+# Resolve yt-dlp + ffmpeg - look on system, then script-local. Setup ('s') fetches if missing.
+YTDLP=""
+if command -v yt-dlp >/dev/null 2>&1; then
   YTDLP="yt-dlp"
+elif [ -x "${SCRIPT_DIR}/yt-dlp" ]; then
+  YTDLP="${SCRIPT_DIR}/yt-dlp"
 fi
 
-# Check for ffmpeg
 FFARG=""
 if command -v ffmpeg >/dev/null 2>&1; then
   FFARG="$(command -v ffmpeg)"
@@ -73,7 +70,22 @@ elif [ -x "${SCRIPT_DIR}/ffmpeg" ]; then
 fi
 
 # --- Item 6: non-interactive mode when URL passed on CLI ---
+if [ "$ARG_OP" = "version" ]; then
+  echo "downterm v2.2"
+  exit 0
+fi
+
+if [ "$ARG_OP" = "setup" ]; then
+  do_setup
+  exit $?
+fi
+
 if [ -n "$ARG_URL" ] && [ "$ARG_URL" != "--help" ]; then
+  if [ -z "$YTDLP" ]; then
+    printf "  ${BAD}yt-dlp not found.${R}\n"
+    printf "  ${FAINT}run 's' (interactively) to fetch it, or see bin/checksums.txt${R}\n"
+    exit 1
+  fi
   MODE="${ARG_MODE:-$CFG_MODE}"
   [ -z "$MODE" ] && MODE="video"
   QUALITY="${ARG_QUALITY:-$CFG_QUALITY}"
@@ -88,6 +100,11 @@ fi
 if [ "$ARG_URL" = "--help" ]; then
   show_help
   exit 0
+fi
+
+if [ -z "$YTDLP" ]; then
+  printf "  ${BAD}yt-dlp not found.${R}\n"
+  printf "  ${FAINT}run 's' to fetch it, or see bin/checksums.txt${R}\n"
 fi
 
 start() {
