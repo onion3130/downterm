@@ -10,7 +10,7 @@
 # ---- yt-dlp (Unlicense) ----
 # Official: https://github.com/yt-dlp/yt-dlp/releases
 yt-dlp_windows  2026.07.04  52fe3c26dcf71fbdc85b528589020bb0b8e383155cfa81b64dd447bbe35e24b8  https://github.com/yt-dlp/yt-dlp/releases/download/2026.07.04/yt-dlp.exe
-yt-dlp_linux    2026.07.04  495be29ff4d9d4e9be7eabdfef225221e5d5282e77f2f505abc6dca80349f3fd  https://github.com/yt-dlp/yt-dlp/releases/download/2026.07.04/yt-dlp_linux
+yt-dlp_linux    2026.07.04  6bbb3d314cde4febe36e5fa1d55462e29c974f63444e707871834f6d8cc210ae  https://github.com/yt-dlp/yt-dlp/releases/download/2026.07.04/yt-dlp_linux
 yt-dlp_macos    2026.07.04  498bd0dae17855c599d371d68ec5bafc439a9d8640e838be25c765a9792f261b  https://github.com/yt-dlp/yt-dlp/releases/download/2026.07.04/yt-dlp_macos
 
 # ---- ffmpeg (GPL v3, gyan.dev essentials build) ----
