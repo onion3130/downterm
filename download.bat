@@ -376,7 +376,7 @@ rem --- ensure curl is available ---
 where curl.exe >nul 2>&1
 if errorlevel 1 (
   echo   %BAD%curl.exe not found.%R%
-  echo   %FAINT%downterm setup needs curl (built into Windows 10+).%R%
+  echo   %FAINT%downterm setup needs curl ^(built into Windows 10+^).%R%
   echo.
   echo   %FAINT%press any key...%R%
   pause>nul
