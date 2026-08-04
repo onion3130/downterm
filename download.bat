@@ -394,7 +394,7 @@ if exist "yt-dlp.exe" (
 )
 if not defined YTURL goto :ytok
 echo   %MUT%fetching yt-dlp.exe...%R%
-curl -L -o "yt-dlp.exe.tmp" "%YTURL%" 2>nul
+curl -L --max-time 180 -o "yt-dlp.exe.tmp" "%YTURL%" 2>nul
 call :verifyhash "yt-dlp.exe.tmp" "%YTHASH%" "yt-dlp.exe"
 if errorlevel 1 goto setupfail
 echo   %GOOD%yt-dlp.exe verified.%R%
@@ -407,9 +407,10 @@ if exist "ffmpeg.exe" (
 )
 if not defined FFURL goto :ffok
 echo   %MUT%fetching ffmpeg essentials.zip...%R%
-curl -L -o "ffmpeg.zip.tmp" "%FFURL%" 2>nul
+curl -L --max-time 600 -o "ffmpeg.zip.tmp" "%FFURL%" 2>nul
+if errorlevel 1 goto :ffskip
 call :verifyhash "ffmpeg.zip.tmp" "%FFHASH%" "ffmpeg.zip"
-if errorlevel 1 goto setupfail
+if errorlevel 1 goto :ffskip
 echo   %MUT%extracting ffmpeg.exe from zip...%R%
 call :extractffmpeg
 if exist "ffmpeg.exe.tmp" del /q "ffmpeg.exe.tmp" 2>nul
@@ -418,10 +419,10 @@ if exist "ffmpeg.exe" (
   echo   %GOOD%ffmpeg.exe extracted.%R%
   goto :ffok
 )
-echo   %BAD%ffmpeg.exe not found in essentials zip.%R%
-echo   %FAINT%the gyan.dev build layout may have changed. open an issue at%R%
-echo   %FAINT%github.com/onion3130/downterm/issues%R%
-goto setupfail
+:ffskip
+echo   %WARN%ffmpeg.exe not available; skipping (optional for plain mp4 downloads).%R%
+if exist "ffmpeg.zip.tmp" del /q "ffmpeg.zip.tmp" 2>nul
+if exist "ffmpeg.zip" del /q "ffmpeg.zip" 2>nul
 :ffok
 
 rem --- deno.exe (optional, extract from deno zip) ---
@@ -431,9 +432,10 @@ if exist "deno.exe" (
 )
 if not defined DENOURL goto :denook
 echo   %MUT%fetching deno.zip...%R%
-curl -L -o "deno.zip.tmp" "%DENOURL%" 2>nul
+curl -L --max-time 300 -o "deno.zip.tmp" "%DENOURL%" 2>nul
+if errorlevel 1 goto :denoskip
 call :verifyhash "deno.zip.tmp" "%DENOHASH%" "deno.zip"
-if errorlevel 1 goto setupfail
+if errorlevel 1 goto :denoskip
 echo   %MUT%extracting deno.exe from zip...%R%
 call :extractdeno
 if exist "deno.zip" del /q "deno.zip" 2>nul
@@ -441,8 +443,10 @@ if exist "deno.exe" (
   echo   %GOOD%deno.exe extracted.%R%
   goto :denook
 )
-echo   %BAD%deno.exe not found in deno zip.%R%
-echo   %FAINT%optional - yt-dlp will fall back to limited JS retrieval.%R%
+:denoskip
+echo   %WARN%deno.exe not available; skipping (optional).%R%
+if exist "deno.zip.tmp" del /q "deno.zip.tmp" 2>nul
+if exist "deno.zip" del /q "deno.zip" 2>nul
 :denook
 
 echo.
