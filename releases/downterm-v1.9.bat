@@ -95,7 +95,7 @@ echo   %ACC%downterm%R%  %FAINT%self-test%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%downloading test video...%R%
-echo   %FAINT%https://www.youtube.com/watch?v=Rfyr7-dQnAg%R%
+echo   %FAINT%https://www.youtube.com/watch?v=y4gzlFhfvPQ%R%
 echo.
 echo   %HAIR%-----------------------------------------------%R%
 echo.
@@ -112,7 +112,7 @@ if not exist "yt-dlp.exe" (
 set "FFARG="
 if exist "ffmpeg.exe" set "FFARG=.\ffmpeg.exe"
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "https://www.youtube.com/watch?v=Rfyr7-dQnAg" "%FFARG%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "https://www.youtube.com/watch?v=y4gzlFhfvPQ" "%FFARG%"
 set "ec=!errorlevel!"
 echo.
 echo   %HAIR%-----------------------------------------------%R%

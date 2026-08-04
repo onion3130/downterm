@@ -9,4 +9,14 @@ desktop.ini
 .DS_Store
 
 # Downloaded videos (keep binaries, ignore output)
-*.f401.mp4
+*.mp4
+*.mkv
+*.webm
+*.mp3
+*.m4a
+*.f*
+*.part
+*.temp
+
+# Agent handoff file (not for git)
+AGENT_HANDOFF.md

@@ -71,6 +71,7 @@ Or [download as ZIP](https://github.com/onion3130/downterm/archive/refs/heads/ma
 |-----|--------|
 | `<url>` | download best video + audio, merged to mp4 |
 | `?` or `help` | open the help screen |
+| `t` or `test` | **self-test**: downloads a sample video, verifies it works, then deletes the file |
 | `q` / `quit` / `exit` | close downterm |
 
 ## how the progress bar works
@@ -85,10 +86,20 @@ It updates in place with a carriage return, then shows any non-progress output (
 
 ## requirements
 
+### Windows
 - Windows 10+ (for ANSI color support)
 - PowerShell (bundled with Windows 10+)
 - `yt-dlp.exe` — **included**
 - `ffmpeg.exe` — **included**
+
+### Linux / macOS
+```bash
+chmod +x download.sh
+./download.sh
+```
+- `yt-dlp` (install: `pip install yt-dlp` or `sudo apt install yt-dlp`)
+- `ffmpeg` (install: `sudo apt install ffmpeg`)
+- bash 4+ (for regex matching in the progress bar filter)
 
 ## bundled software (legal notes)
 
@@ -109,7 +120,9 @@ Both are included in good faith as redistributable software. If you are the main
 
 ## releases
 
-Each version is preserved in [`/releases`](./releases). The latest is [`download.bat`](./download.bat).
+Each version is preserved in [`/releases`](./releases). The latest is [`download.bat`](./download.bat) (Windows) or [`download.sh`](./download.sh) (Linux/macOS).
+
+See all releases: https://github.com/onion3130/downterm/releases
 
 - `v1.0` — first sketch, dotted header
 - `v1.1` — wordmark + boxed guide panel
@@ -120,6 +133,7 @@ Each version is preserved in [`/releases`](./releases). The latest is [`download
 - `v1.6` — fixed `'cho'` bug and post-entry layout
 - `v1.7` — clean full-redraw on entry, no jumble
 - `v1.8` — progress bar filter (`filter.ps1`), ffmpeg auto-detect
+- `v1.9` — **Linux support** (`download.sh` + `filter.sh`), **self-test** command (`t`)
 
 ## license
 
