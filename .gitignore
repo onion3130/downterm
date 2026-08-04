@@ -1,0 +1,12 @@
+# Local history / state
+.downterm_history
+*.part
+*.temp
+
+# OS junk
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Downloaded videos (keep binaries, ignore output)
+*.f401.mp4
