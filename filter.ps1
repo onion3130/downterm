@@ -2,9 +2,27 @@ param(
   [Parameter(Mandatory=$true)][string]$url,
   [string]$ff,
   [string]$mode = "video",
-  [string]$quality = "best"
+  [string]$quality = "best",
+  [string]$output = ""
 )
 $ErrorActionPreference = 'SilentlyContinue'
+
+# --- Item 5: URL pre-validation ---
+if ($url -notmatch '^https?://') {
+  [Console]::Error.WriteLine("")
+  [Console]::Error.WriteLine("  ERR-13 - invalid URL  *  must start with http:// or https://")
+  exit 13
+}
+
+# Detect playlist URL but allow it through (yt-dlp handles playlists natively)
+$playlist = $false
+if ($url -match 'list=[^&]+') { $playlist = $true }
+
+# --- Item 5: Encourage users to use ffmpeg if missing on Windows ---
+$warnNoFf = (-not $ff) -and (-not (Test-Path '.\ffmpeg.exe')) -and (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue))
+if ($warnNoFf -and ($mode -ne "audio")) {
+  [Console]::Error.WriteLine("  WARN - ffmpeg not found; some videos will fail to merge. Run 's' to fetch it.")
+}
 
 # Build yt-dlp args based on mode + quality
 # Force mp4 video / mp3 audio - never webm
@@ -12,7 +30,9 @@ if ($mode -eq "audio") {
   $aq = '0'
   if ($quality -eq "medium") { $aq = '5' }
   elseif ($quality -eq "low") { $aq = '9' }
-  $ytargs = @('-x','--audio-format','mp3','--audio-quality',$aq,'-o','%(title)s.%(ext)s','--newline')
+  $outTpl = '%(title)s.%(ext)s'
+  if ($output) { $outTpl = "$output/%(title)s.%(ext)s" }
+  $ytargs = @('-x','--audio-format','mp3','--audio-quality',$aq,'-o',$outTpl,'--newline')
 } else {
   $format = switch ($quality) {
     "1080" { 'bv*[ext=mp4][height<=1080]+ba[ext=m4a]/b[ext=mp4]/b' }
@@ -20,11 +40,15 @@ if ($mode -eq "audio") {
     "480"  { 'bv*[ext=mp4][height<=480]+ba[ext=m4a]/b[ext=mp4]/b' }
     default { 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b' }
   }
-  $ytargs = @('-f',$format,'--merge-output-format','mp4','-o','%(title)s.%(ext)s','--newline')
+  $outTpl = '%(title)s.%(ext)s'
+  if ($output) { $outTpl = "$output/%(title)s.%(ext)s" }
+  $ytargs = @('-f',$format,'--merge-output-format','mp4','-o',$outTpl,'--newline')
 }
 
 if ($ff) { $ytargs += @('--ffmpeg-location',$ff) }
 if (Test-Path '.\deno.exe') { $ytargs += @('--js-runtimes','deno:.\deno.exe') }
+# --- Item 5: dedup by file existence (no archive) ---
+$ytargs += @('--no-overwrites','--continue')
 $ytargs += $url
 
 $suppressPatterns = @(
@@ -136,4 +160,11 @@ if ($err) {
 }
 
 $p.WaitForExit()
+
+# --- Item 5: cleanup partial files on failure ---
+if ($p.ExitCode -ne 0) {
+  Get-ChildItem -Filter '*.part' -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+  Get-ChildItem -Filter '*.temp' -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+}
+
 exit $p.ExitCode

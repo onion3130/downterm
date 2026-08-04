@@ -1,0 +1,30 @@
+# bin/checksums.txt
+# Pinned versions + SHA256 hashes for binaries fetched on first run.
+# Lines beginning with '#' are comments. Format:
+#   <key> <version> <sha256> <url>
+#
+# When bumping a pinned version, update BOTH the version and sha256 here.
+# The setup step (download.bat :setup / download.sh setup) reads this file
+# to know what to fetch and what to verify against.
+
+# ---- yt-dlp (Unlicense) ----
+# Official: https://github.com/yt-dlp/yt-dlp/releases
+yt-dlp_windows  2026.07.04  52fe3c26dcf71fbdc85b528589020bb0b8e383155cfa81b64dd447bbe35e24b8  https://github.com/yt-dlp/yt-dlp/releases/download/2026.07.04/yt-dlp.exe
+yt-dlp_linux    2026.07.04  495be29ff4d9d4e9be7eabdfef225221e5d5282e77f2f505abc6dca80349f3fd  https://github.com/yt-dlp/yt-dlp/releases/download/2026.07.04/yt-dlp_linux
+yt-dlp_macos    2026.07.04  498bd0dae17855c599d371d68ec5bafc439a9d8640e838be25c765a9792f261b  https://github.com/yt-dlp/yt-dlp/releases/download/2026.07.04/yt-dlp_macos
+
+# ---- ffmpeg (GPL v3, gyan.dev essentials build) ----
+# Official Windows builds: https://www.gyan.dev/ffmpeg/builds/
+# We pin the .zip essentials build and extract bin/ffmpeg.exe from it.
+# Linux/macOS users should install ffmpeg via their system package manager:
+#   apt install ffmpeg      (Debian/Ubuntu)
+#   dnf install ffmpeg      (Fedora)
+#   brew install ffmpeg      (macOS)
+ffmpeg_windows 9.0  e6b54767a6065919048f1a098eb27211ca4e12b4348a05d88777a5855d0b6e71  https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
+
+# ---- deno (MIT) ----
+# Official: https://github.com/denoland/deno/releases
+# We pin the .zip asset matching the host platform and extract deno(.exe) from it.
+deno_windows 2.9.4  68ed08b05c56cf887e9aa509947dc3f468f7e12f47a13e5c1abd51d46d1453ef  https://github.com/denoland/deno/releases/download/v2.9.4/deno-x86_64-pc-windows-msvc.zip
+deno_linux   2.9.4  c24f955d9fbfe0ea5ae2b501c8e71ae76e31e4c9782390a54a284b3364fda725  https://github.com/denoland/deno/releases/download/v2.9.4/deno-x86_64-unknown-linux-gnu.zip
+deno_macos   2.9.4  f757df6d3991e37601c69fad56c22b37c4ea77b5dcfad3636a642c2ba4c9b19f  https://github.com/denoland/deno/releases/download/v2.9.4/deno-x86_64-apple-darwin.zip

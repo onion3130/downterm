@@ -1,14 +1,25 @@
 #!/usr/bin/env bash
 # downterm filter.sh — progress bar filter for yt-dlp (Linux/macOS)
-# Usage: filter.sh <url> <ffmpeg_path> <yt-dlp_path> [mode] [quality]
+# Usage: filter.sh <url> <ffmpeg_path> <yt-dlp_path> [mode] [quality] [output]
 
 url="${1:-}"
 ff="${2:-}"
 ytdlp="${3:-yt-dlp}"
 mode="${4:-video}"
 quality="${5:-best}"
+output="${6:-}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || echo .)"
+
+# --- Item 5: URL pre-validation ---
+if [[ ! "$url" =~ ^https?:// ]]; then
+  printf "\n  ERR-13 - invalid URL  *  must start with http:// or https://\n" >&2
+  exit 13
+fi
+
+# Build output template
+outTpl='%(title)s.%(ext)s'
+if [ -n "$output" ]; then outTpl="${output}/%(title)s.%(ext)s"; fi
 
 if [ "$mode" = "audio" ]; then
   aq='0'
@@ -16,7 +27,7 @@ if [ "$mode" = "audio" ]; then
     medium) aq='5' ;;
     low)    aq='9' ;;
   esac
-  args=(-x --audio-format mp3 --audio-quality "$aq" -o '%(title)s.%(ext)s' --newline)
+  args=(-x --audio-format mp3 --audio-quality "$aq" -o "$outTpl" --newline)
 else
   case "$quality" in
     1080) format='bv*[ext=mp4][height<=1080]+ba[ext=m4a]/b[ext=mp4]/b' ;;
@@ -24,7 +35,7 @@ else
     480)  format='bv*[ext=mp4][height<=480]+ba[ext=m4a]/b[ext=mp4]/b' ;;
     *)    format='bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b' ;;
   esac
-  args=(-f "$format" --merge-output-format mp4 -o '%(title)s.%(ext)s' --newline)
+  args=(-f "$format" --merge-output-format mp4 -o "$outTpl" --newline)
 fi
 
 if [ -n "$ff" ]; then
@@ -38,6 +49,9 @@ elif [ -x "${SCRIPT_DIR}/deno.exe" ]; then
 elif command -v deno >/dev/null 2>&1; then
   args+=(--js-runtimes "deno:deno")
 fi
+
+# --- Item 5: dedup by file existence (no archive) ---
+args+=(--no-overwrites --continue)
 
 args+=("$url")
 
@@ -104,4 +118,6 @@ if [ -n "$err_out" ]; then
     *) code="ERR-00"; msg="unknown error" ;;
   esac
   printf "\n  %s - %s  *  see github.com/onion3130/downterm/blob/main/docs/ERRORS.md\n" "$code" "$msg" >&2
+  # --- Item 5: cleanup partial files on error ---
+  rm -f ./*.part ./*.temp 2>/dev/null
 fi
