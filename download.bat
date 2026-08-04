@@ -1,6 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
-title downterm v2.1
+title downterm v2.2
 cd /d "%~dp0"
 rem safety: never let the window close without a pause
 goto main
@@ -87,7 +87,7 @@ if defined ARG_URL (
 :start
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.1%R%
+echo   %ACC%downterm%R%  %FAINT%v2.2%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%a quiet wrapper around yt-dlp.%R%
@@ -132,7 +132,7 @@ goto dodownload
 :dodownload
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.1%R%
+echo   %ACC%downterm%R%  %FAINT%v2.2%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%acquiring%R%  %FAINT%!url!%R%
@@ -254,7 +254,7 @@ goto start
 :batchdownload
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.1%R%
+echo   %ACC%downterm%R%  %FAINT%v2.2%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%[!CURRENT!/!URLCOUNT!]%R%  %FAINT%!BATCHURL!%R%
@@ -349,14 +349,16 @@ set "FFURL="
 set "FFHASH="
 set "DENOURL="
 set "DENOHASH="
-if not exist "%~dp0bin\checksums.txt" (
-  echo   %BAD%bin\checksums.txt not found.%R%
-  echo   %FAINT%cannot determine what to fetch. reinstall downterm.%R%
-  echo.
-  echo   %FAINT%press any key...%R%
-  pause>nul
-  goto start
-)
+if not exist "%~dp0bin\checksums.txt" goto :nofile
+goto :hfile
+:nofile
+echo   %BAD%bin\checksums.txt not found.%R%
+echo   %FAINT%cannot determine what to fetch. reinstall downterm.%R%
+echo.
+echo   %FAINT%press any key...%R%
+pause>nul
+goto start
+:hfile
 for /f "usebackq tokens=1,2,3,4 eol=#" %%a in ("%~dp0bin\checksums.txt") do (
   if /i "%%a"=="yt-dlp_windows" (
     set "YTURL=%%d"
@@ -374,65 +376,74 @@ for /f "usebackq tokens=1,2,3,4 eol=#" %%a in ("%~dp0bin\checksums.txt") do (
 
 rem --- ensure curl is available ---
 where curl.exe >nul 2>&1
-if errorlevel 1 (
-  echo   %BAD%curl.exe not found.%R%
-  echo   %FAINT%downterm setup needs curl ^(built into Windows 10+^).%R%
-  echo.
-  echo   %FAINT%press any key...%R%
-  pause>nul
-  goto start
-)
+if errorlevel 1 goto :nocurl
+goto :hcurl
+:nocurl
+echo   %BAD%curl.exe not found.%R%
+echo   %FAINT%downterm setup needs curl ^(built into Windows 10+^).%R%
+echo.
+echo   %FAINT%press any key...%R%
+pause>nul
+goto start
+:hcurl
 
 rem --- yt-dlp.exe ---
 if exist "yt-dlp.exe" (
   echo   %FAINT%yt-dlp.exe already present, skipping.%R%
-) else if defined YTURL (
-  echo   %MUT%fetching yt-dlp.exe...%R%
-  curl -L -o "yt-dlp.exe.tmp" "%YTURL%" 2>nul
-  call :verifyhash "yt-dlp.exe.tmp" "%YTHASH%" "yt-dlp.exe"
-  if errorlevel 1 goto setupfail
-  echo   %GOOD%yt-dlp.exe verified.%R%
+  goto :ytok
 )
+if not defined YTURL goto :ytok
+echo   %MUT%fetching yt-dlp.exe...%R%
+curl -L -o "yt-dlp.exe.tmp" "%YTURL%" 2>nul
+call :verifyhash "yt-dlp.exe.tmp" "%YTHASH%" "yt-dlp.exe"
+if errorlevel 1 goto setupfail
+echo   %GOOD%yt-dlp.exe verified.%R%
+:ytok
 
 rem --- ffmpeg.exe (extract from essentials zip) ---
 if exist "ffmpeg.exe" (
   echo   %FAINT%ffmpeg.exe already present, skipping.%R%
-) else if defined FFURL (
-  echo   %MUT%fetching ffmpeg essentials.zip...%R%
-  curl -L -o "ffmpeg.zip.tmp" "%FFURL%" 2>nul
-  call :verifyhash "ffmpeg.zip.tmp" "%FFHASH%" "ffmpeg.zip"
-  if errorlevel 1 goto setupfail
-  echo   %MUT%extracting ffmpeg.exe from zip...%R%
-  call :extractffmpeg
-  if exist "ffmpeg.exe.tmp" del /q "ffmpeg.exe.tmp" 2>nul
-  if exist "ffmpeg.zip" del /q "ffmpeg.zip" 2>nul
-  if not exist "ffmpeg.exe" (
-    echo   %BAD%ffmpeg.exe not found in essentials zip.%R%
-    echo   %FAINT%the gyan.dev build layout may have changed. open an issue at%R%
-    echo   %FAINT%github.com/onion3130/downterm/issues%R%
-    goto setupfail
-  )
-  echo   %GOOD%ffmpeg.exe extracted.%R%
+  goto :ffok
 )
+if not defined FFURL goto :ffok
+echo   %MUT%fetching ffmpeg essentials.zip...%R%
+curl -L -o "ffmpeg.zip.tmp" "%FFURL%" 2>nul
+call :verifyhash "ffmpeg.zip.tmp" "%FFHASH%" "ffmpeg.zip"
+if errorlevel 1 goto setupfail
+echo   %MUT%extracting ffmpeg.exe from zip...%R%
+call :extractffmpeg
+if exist "ffmpeg.exe.tmp" del /q "ffmpeg.exe.tmp" 2>nul
+if exist "ffmpeg.zip" del /q "ffmpeg.zip" 2>nul
+if exist "ffmpeg.exe" (
+  echo   %GOOD%ffmpeg.exe extracted.%R%
+  goto :ffok
+)
+echo   %BAD%ffmpeg.exe not found in essentials zip.%R%
+echo   %FAINT%the gyan.dev build layout may have changed. open an issue at%R%
+echo   %FAINT%github.com/onion3130/downterm/issues%R%
+goto setupfail
+:ffok
 
 rem --- deno.exe (optional, extract from deno zip) ---
 if exist "deno.exe" (
   echo   %FAINT%deno.exe already present, skipping.%R%
-) else if defined DENOURL (
-  echo   %MUT%fetching deno.zip...%R%
-  curl -L -o "deno.zip.tmp" "%DENOURL%" 2>nul
-  call :verifyhash "deno.zip.tmp" "%DENOHASH%" "deno.zip"
-  if errorlevel 1 goto setupfail
-  echo   %MUT%extracting deno.exe from zip...%R%
-  call :extractdeno
-  if exist "deno.zip" del /q "deno.zip" 2>nul
-  if not exist "deno.exe" (
-    echo   %BAD%deno.exe not found in deno zip.%R%
-    echo   %FAINT%optional - yt-dlp will fall back to limited JS retrieval.%R%
-  ) else (
-    echo   %GOOD%deno.exe extracted.%R%
-  )
+  goto :denook
 )
+if not defined DENOURL goto :denook
+echo   %MUT%fetching deno.zip...%R%
+curl -L -o "deno.zip.tmp" "%DENOURL%" 2>nul
+call :verifyhash "deno.zip.tmp" "%DENOHASH%" "deno.zip"
+if errorlevel 1 goto setupfail
+echo   %MUT%extracting deno.exe from zip...%R%
+call :extractdeno
+if exist "deno.zip" del /q "deno.zip" 2>nul
+if exist "deno.exe" (
+  echo   %GOOD%deno.exe extracted.%R%
+  goto :denook
+)
+echo   %BAD%deno.exe not found in deno zip.%R%
+echo   %FAINT%optional - yt-dlp will fall back to limited JS retrieval.%R%
+:denook
 
 echo.
 echo   %GOOD%setup complete.%R%  %FAINT%you can now paste a url.%R%
@@ -469,10 +480,10 @@ for /f "skip=1 tokens=* delims=" %%i in ('certutil -hashfile "%TMPF%" SHA256 2^>
 rem certutil echoes hash on second line with leading spaces; strip them
 set "ACTUAL=%ACTUAL: =%"
 set "ACTUAL=%ACTUAL:~0,64%"
-if /i "!ACTUAL!"=="%EXPECTED%" (
-  move /y "%TMPF%" "%FINAL%" >nul
-  exit /b 0
-)
+if /i not "!ACTUAL!"=="%EXPECTED%" goto :hashbad
+move /y "%TMPF%" "%FINAL%" >nul
+exit /b 0
+:hashbad
 echo   %BAD%checksum mismatch for %FINAL%%R%
 echo   %FAINT%expected: %EXPECTED%%R%
 echo   %FAINT%actual:   !ACTUAL!%R%

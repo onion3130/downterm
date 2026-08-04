@@ -19,109 +19,8 @@ WARN="${ESC}[38;5;179m"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# --- forward-declared functions (all defined below) ---
-# Using stubs here satisfies any parser that needs declarations before calls.
-do_setup() { :; }
-verify_hash() { :; }
-setup_fail() { :; }
-show_help() { :; }
-start() { :; }
-asktype() { :; }
-askquality() { :; }
-download() { :; }
-batchmode() { :; }
-selftest() { :; }
-
-# --- Item 6: load config from downterm.conf if present ---
-CFG_MODE=""
-CFG_QUALITY=""
-CFG_OUTPUT=""
-if [ -f "$SCRIPT_DIR/downterm.conf" ]; then
-  while IFS='=' read -r key val; do
-    case "$key" in
-      ''|\#*) continue ;;
-      MODE)    CFG_MODE="$val" ;;
-      QUALITY) CFG_QUALITY="$val" ;;
-      OUTPUT)  CFG_OUTPUT="$val" ;;
-    esac
-  done < "$SCRIPT_DIR/downterm.conf"
-fi
-
-# --- Item 6: parse CLI flags ---
-ARG_URL=""
-ARG_MODE=""
-ARG_QUALITY=""
-ARG_OUTPUT=""
-ARG_OP=""
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --mode=*)    ARG_MODE="${1#--mode=}" ;;
-    --quality=*) ARG_QUALITY="${1#--quality=}" ;;
-    --output=*)  ARG_OUTPUT="${1#--output=}" ;;
-    --setup)     ARG_OP="setup" ;;
-    --version)   ARG_OP="version" ;;
-    --help|-h)   ARG_URL="--help" ;;
-    --*)         ;;  # ignore unknown flags
-    *)           if [ -z "$ARG_URL" ]; then ARG_URL="$1"; fi ;;
-  esac
-  shift
-done
-
-# Resolve yt-dlp + ffmpeg - look on system, then script-local. Setup ('s') fetches if missing.
-YTDLP=""
-if command -v yt-dlp >/dev/null 2>&1; then
-  YTDLP="yt-dlp"
-elif [ -x "${SCRIPT_DIR}/yt-dlp" ]; then
-  YTDLP="${SCRIPT_DIR}/yt-dlp"
-fi
-
-FFARG=""
-if command -v ffmpeg >/dev/null 2>&1; then
-  FFARG="$(command -v ffmpeg)"
-elif [ -x "${SCRIPT_DIR}/ffmpeg" ]; then
-  FFARG="${SCRIPT_DIR}/ffmpeg"
-fi
-
-# --- Item 6: non-interactive mode when URL passed on CLI ---
-if [ "$ARG_OP" = "version" ]; then
-  echo "downterm v2.2"
-  exit 0
-fi
-
-if [ "$ARG_OP" = "setup" ]; then
-  do_setup
-  exit $?
-fi
-
-if [ -n "$ARG_URL" ] && [ "$ARG_URL" != "--help" ]; then
-  if [ -z "$YTDLP" ]; then
-    printf "  ${BAD}yt-dlp not found.${R}\n"
-    printf "  ${FAINT}run 's' (interactively) to fetch it, or see bin/checksums.txt${R}\n"
-    exit 1
-  fi
-  MODE="${ARG_MODE:-$CFG_MODE}"
-  [ -z "$MODE" ] && MODE="video"
-  QUALITY="${ARG_QUALITY:-$CFG_QUALITY}"
-  [ -z "$QUALITY" ] && QUALITY="best"
-  OUT="${ARG_OUTPUT:-$CFG_OUTPUT}"
-  if [ -n "$OUT" ] && [ ! -d "$OUT" ]; then mkdir -p "$OUT" 2>/dev/null; fi
-  printf "%s\n" "$ARG_URL" > "$SCRIPT_DIR/.downterm_last.txt"
-  download "$ARG_URL"
-  exit $?
-fi
-
-if [ "$ARG_URL" = "--help" ]; then
-  show_help
-  exit 0
-fi
-
-if [ -z "$YTDLP" ]; then
-  printf "  ${BAD}yt-dlp not found.${R}\n"
-  printf "  ${FAINT}run 's' to fetch it, or see bin/checksums.txt${R}\n"
-fi
-
 # ============================================================
-# function definitions (all used above)
+# functions (defined first so CLI dispatch can call them)
 # ============================================================
 
 verify_hash() {
@@ -355,7 +254,8 @@ start() {
 asktype() {
   printf "\n"
   printf "  ${FAINT}  v = video   a = audio (mp3)${R}\n"
-  printf "  ${MUT}video or audio? (v/a) [${ink}v${MUT}]${R} "
+  printf "  ${MUT}video or audio? (v/a) [${ink}v${MUT}]${R} " 2>/dev/null || \
+  printf "  ${MUT}video or audio? (v/a) [v]${R} "
   read -r mode
   case "$mode" in
     a|A|audio) MODE="audio" ;;
@@ -370,7 +270,7 @@ askquality() {
   fi
   printf "\n"
   printf "  ${FAINT}  b = best   1 = 1080p   7 = 720p   4 = 480p${R}\n"
-  printf "  ${MUT}quality? (b/1/7/4) [${ink}b${MUT}]${R} "
+  printf "  ${MUT}quality? (b/1/7/4) [b]${R} "
   read -r quality
   case "$quality" in
     1) QUALITY="1080" ;;
@@ -502,6 +402,100 @@ selftest() {
 }
 
 # ============================================================
-# entry point
+# config load (downterm.conf)
+# ============================================================
+CFG_MODE=""
+CFG_QUALITY=""
+CFG_OUTPUT=""
+if [ -f "$SCRIPT_DIR/downterm.conf" ]; then
+  while IFS='=' read -r key val; do
+    case "$key" in
+      ''|\#*) continue ;;
+      MODE)    CFG_MODE="$val" ;;
+      QUALITY) CFG_QUALITY="$val" ;;
+      OUTPUT)  CFG_OUTPUT="$val" ;;
+    esac
+  done < "$SCRIPT_DIR/downterm.conf"
+fi
+
+# ============================================================
+# CLI flag parsing
+# ============================================================
+ARG_URL=""
+ARG_MODE=""
+ARG_QUALITY=""
+ARG_OUTPUT=""
+ARG_OP=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --mode=*)    ARG_MODE="${1#--mode=}" ;;
+    --quality=*) ARG_QUALITY="${1#--quality=}" ;;
+    --output=*)  ARG_OUTPUT="${1#--output=}" ;;
+    --setup)     ARG_OP="setup" ;;
+    --version)   ARG_OP="version" ;;
+    --help|-h)   ARG_URL="--help" ;;
+    --*)         ;;  # ignore unknown flags
+    *)           if [ -z "$ARG_URL" ]; then ARG_URL="$1"; fi ;;
+  esac
+  shift
+done
+
+# Resolve yt-dlp + ffmpeg - look on system, then script-local. Setup ('s') fetches if missing.
+YTDLP=""
+if command -v yt-dlp >/dev/null 2>&1; then
+  YTDLP="yt-dlp"
+elif [ -x "${SCRIPT_DIR}/yt-dlp" ]; then
+  YTDLP="${SCRIPT_DIR}/yt-dlp"
+fi
+
+FFARG=""
+if command -v ffmpeg >/dev/null 2>&1; then
+  FFARG="$(command -v ffmpeg)"
+elif [ -x "${SCRIPT_DIR}/ffmpeg" ]; then
+  FFARG="${SCRIPT_DIR}/ffmpeg"
+fi
+
+# ============================================================
+# dispatch
+# ============================================================
+if [ "$ARG_OP" = "version" ]; then
+  echo "downterm v2.2"
+  exit 0
+fi
+
+if [ "$ARG_OP" = "setup" ]; then
+  do_setup
+  exit $?
+fi
+
+if [ -n "$ARG_URL" ] && [ "$ARG_URL" != "--help" ]; then
+  if [ -z "$YTDLP" ]; then
+    printf "  ${BAD}yt-dlp not found.${R}\n"
+    printf "  ${FAINT}run 's' (interactively) to fetch it, or see bin/checksums.txt${R}\n"
+    exit 1
+  fi
+  MODE="${ARG_MODE:-$CFG_MODE}"
+  [ -z "$MODE" ] && MODE="video"
+  QUALITY="${ARG_QUALITY:-$CFG_QUALITY}"
+  [ -z "$QUALITY" ] && QUALITY="best"
+  OUT="${ARG_OUTPUT:-$CFG_OUTPUT}"
+  if [ -n "$OUT" ] && [ ! -d "$OUT" ]; then mkdir -p "$OUT" 2>/dev/null; fi
+  printf "%s\n" "$ARG_URL" > "$SCRIPT_DIR/.downterm_last.txt"
+  download "$ARG_URL"
+  exit $?
+fi
+
+if [ "$ARG_URL" = "--help" ]; then
+  show_help
+  exit 0
+fi
+
+if [ -z "$YTDLP" ]; then
+  printf "  ${BAD}yt-dlp not found.${R}\n"
+  printf "  ${FAINT}run 's' to fetch it, or see bin/checksums.txt${R}\n"
+fi
+
+# ============================================================
+# entry point (interactive mode)
 # ============================================================
 start
