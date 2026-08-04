@@ -76,6 +76,7 @@ if defined ARG_URL (
   if defined ARG_MODE set "MODE=%ARG_MODE%"
   set "QUALITY=%CFG_QUALITY%"
   if defined ARG_QUALITY set "QUALITY=%ARG_QUALITY%"
+  if defined CFG_OUTPUT if not defined ARG_OUTPUT set "ARG_OUTPUT=%CFG_OUTPUT%"
   if not defined MODE set "MODE=video"
   if not defined QUALITY set "QUALITY=best"
   set "url=!ARG_URL!"
