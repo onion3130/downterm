@@ -6,9 +6,20 @@ url="${1:-}"
 ff="${2:-}"
 ytdlp="${3:-yt-dlp}"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || echo .)"
+
 args=(-f 'bv*+ba/b' --merge-output-format mp4 -o '%(title)s.%(ext)s' --newline)
 if [ -n "$ff" ]; then
   args+=(--ffmpeg-location "$ff")
+fi
+if [ -x "${SCRIPT_DIR:-.}/deno.exe" ] || [ -x "${SCRIPT_DIR:-.}/deno" ] || command -v deno >/dev/null 2>&1; then
+  if [ -x "${SCRIPT_DIR:-.}/deno" ]; then
+    args+=(--js-runtimes "deno:${SCRIPT_DIR:-.}/deno")
+  elif [ -x "${SCRIPT_DIR:-.}/deno.exe" ]; then
+    args+=(--js-runtimes "deno:${SCRIPT_DIR:-.}/deno.exe")
+  else
+    args+=(--js-runtimes "deno:deno")
+  fi
 fi
 args+=("$url")
 

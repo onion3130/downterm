@@ -6,6 +6,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 
 $ytargs = @('-f','bv*+ba/b','--merge-output-format','mp4','-o','%(title)s.%(ext)s','--newline')
 if ($ff) { $ytargs += @('--ffmpeg-location',$ff) }
+if (Test-Path '.\deno.exe') { $ytargs += @('--js-runtimes','deno:.\deno.exe') }
 $ytargs += $url
 
 $argStr = ($ytargs | ForEach-Object {
