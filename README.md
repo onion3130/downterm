@@ -120,7 +120,13 @@ This repo bundles two third-party binaries so it works out of the box:
 - Build: gyan.dev essentials build (https://www.gyan.dev/ffmpeg/builds/)
 - Full license text: see [ffmpeg-LICENSE.txt](./ffmpeg-LICENSE.txt)
 
-Both are included in good faith as redistributable software. If you are the maintainer of either project and want anything changed, open an issue.
+### deno
+- License: MIT
+- Source: https://github.com/denoland/deno
+- Purpose: JavaScript runtime for yt-dlp YouTube extraction (required for full format support)
+- Full license text: see [deno-LICENSE.txt](./deno-LICENSE.txt)
+
+All three are included in good faith as redistributable software. If you are the maintainer of any of them and want anything changed, open an issue.
 
 ## releases
 
