@@ -48,7 +48,11 @@ A minimal, styled Windows batch script that wraps yt-dlp into a clean little ter
 
 ## setup
 
-Everything you need is included in the repo. Just clone and run:
+### Option A — full install (recommended for most users)
+Download the bundled zip from the [v1.9 release](https://github.com/onion3130/downterm/releases/tag/v1.9): **`downterm-v1.9-full.zip`**. It comes with `yt-dlp.exe` and `ffmpeg.exe` included — no extra downloads, no PATH setup. Extract anywhere and run.
+
+### Option B — from source (no binaries)
+Everything else is in the repo. Just clone and run:
 
 ```bat
 git clone https://github.com/onion3130/downterm.git
@@ -56,7 +60,7 @@ cd downterm
 download.bat
 ```
 
-Or [download as ZIP](https://github.com/onion3130/downterm/archive/refs/heads/main.zip) and extract.
+You'll need to supply your own `yt-dlp.exe` and `ffmpeg.exe`.
 
 ## usage
 
