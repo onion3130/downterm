@@ -1,6 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
-title downterm v1.9.1
+title downterm v2.0
 cd /d "%~dp0"
 
 for /F %%? in ('echo prompt $E^|cmd') do set "ESC=%%?"
@@ -17,15 +17,13 @@ set "BAD=%ESC%[38;2;230;120;140m"
 set "INK=%ESC%[38;2;235;240;248m"
 set "ACC=%ESC%[38;2;160;190;235m"
 set "WARN=%ESC%[38;2;225;180;120m"
-set "BARFILL=%ESC%[38;2;160;190;235m"
-set "BAREMPTY=%ESC%[38;2;45;50;60m"
 
-mode con: cols=60 lines=20
+mode con: cols=60 lines=22
 
 :start
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v1.9.1%R%
+echo   %ACC%downterm%R%  %FAINT%v2.0%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%a quiet wrapper around yt-dlp.%R%
@@ -49,14 +47,22 @@ if /i "!url!"=="q" exit /b 0
 if /i "!url!"=="quit" exit /b 0
 if /i "!url!"=="exit" exit /b 0
 
-:download
+rem --- detect batch mode (input is an existing file) ---
+if exist "!url!" (
+  set "BATCHFILE=!url!"
+  goto batchmode
+)
+
+rem --- single download: ask type + quality ---
+call :asktype
+call :askquality
+
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v1.9.1%R%
+echo   %ACC%downterm%R%  %FAINT%v2.0%R%
 echo   %HAIR%...............................................%R%
 echo.
-echo   %MUT%acquiring%R%
-echo   %FAINT%!url!%R%
+echo   %MUT%acquiring%R%  %FAINT%!url!%R%
 echo.
 echo   %HAIR%-----------------------------------------------%R%
 echo.
@@ -70,16 +76,17 @@ if not exist "yt-dlp.exe" (
   goto start
 )
 
-rem --- build ffmpeg arg if present ---
 set "FFARG="
 if exist "ffmpeg.exe" set "FFARG=.\ffmpeg.exe"
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "!url!" "%FFARG%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "!url!" "%FFARG%" "!MODE!" "!QUALITY!"
 set "ec=!errorlevel!"
 echo.
 echo   %HAIR%-----------------------------------------------%R%
-if !ec! gtr 0 (
-  echo   %WARN%finished with warnings.%R%  %FAINT%check above%R%
+if !ec! equ 10019 (
+  echo   %FAINT%  skipped (already downloaded)%R%
+) else if !ec! gtr 0 (
+  echo   %WARN%finished with warnings.%R%  %FAINT%see error code above%R%
 ) else (
   echo   %GOOD%saved.%R%  %FAINT%next to yt-dlp.exe%R%
 )
@@ -87,6 +94,82 @@ echo.
 echo   %FAINT%any key to run again.%R%
 pause>nul
 goto start
+
+:asktype
+echo.
+set /p "MODE=  %MUT%video or audio? (v/a) [%INK%v%MUT%]%R% "
+if /i "!MODE!"=="a" set "MODE=audio" & goto :eof
+set "MODE=video"
+goto :eof
+
+:askquality
+if /i "!MODE!"=="audio" set "QUALITY=best" & goto :eof
+echo.
+set /p "QUALITY=  %MUT%quality? (b/1/7/4) [%ink%b%MUT%]%R% "
+if /i "!QUALITY!"=="1" set "QUALITY=1080" & goto :eof
+if /i "!QUALITY!"=="7" set "QUALITY=720" & goto :eof
+if /i "!QUALITY!"=="4" set "QUALITY=480" & goto :eof
+set "QUALITY=best"
+goto :eof
+
+:batchmode
+echo.
+echo   %MUT%batch file detected.%R%  %FAINT%!BATCHFILE!%R%
+call :asktype
+call :askquality
+
+rem --- count URLs in file (non-blank, non-#) ---
+set "URLCOUNT=0"
+for /f "usebackq eol=# tokens=*" %%a in ("!BATCHFILE!") do set /a URLCOUNT+=1
+
+if !URLCOUNT! lss 1 (
+  echo   %BAD%no URLs found in !BATCHFILE!%R%
+  echo   %FAINT%press any key...%R%
+  pause>nul
+  goto start
+)
+
+set "FFARG="
+if exist "ffmpeg.exe" set "FFARG=.\ffmpeg.exe"
+
+set "CURRENT=0"
+for /f "usebackq eol=# tokens=*" %%a in ("!BATCHFILE!") do (
+  set /a CURRENT+=1
+  set "BATCHURL=%%a"
+  call :batchdownload
+)
+
+echo.
+echo   %HAIR%-----------------------------------------------%R%
+echo   %GOOD%  !URLCOUNT! done.%R%
+echo.
+echo   %FAINT%  any key to run again.%R%
+pause>nul
+goto start
+
+:batchdownload
+cls
+echo.
+echo   %ACC%downterm%R%  %FAINT%v2.0%R%
+echo   %HAIR%...............................................%R%
+echo.
+echo   %MUT%[!CURRENT!/!URLCOUNT!]%R%  %FAINT%!BATCHURL!%R%
+echo.
+echo   %HAIR%-----------------------------------------------%R%
+echo.
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "!BATCHURL!" "%FFARG%" "!MODE!" "!QUALITY!"
+set "ec=!errorlevel!"
+echo.
+if !ec! equ 10019 (
+  echo   %FAINT%  skipped (already downloaded)%R%
+) else if !ec! equ 0 (
+  echo   %GOOD%  saved.%R%
+) else (
+  echo   %WARN%  finished with warnings.%R%  %FAINT%see error code above%R%
+)
+echo.
+goto :eof
 
 :selftest
 cls
@@ -112,7 +195,7 @@ if not exist "yt-dlp.exe" (
 set "FFARG="
 if exist "ffmpeg.exe" set "FFARG=.\ffmpeg.exe"
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "https://www.youtube.com/watch?v=Rfyr7-dQnAg" "%FFARG%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "https://www.youtube.com/watch?v=Rfyr7-dQnAg" "%FFARG%" "video" "best"
 set "ec=!errorlevel!"
 echo.
 echo   %HAIR%-----------------------------------------------%R%
@@ -129,7 +212,6 @@ if !ec! gtr 0 (
 echo   %GOOD%downloaded ok.%R%  %MUT%cleaning up...%R%
 echo.
 
-rem --- delete downloaded test files ---
 set "cleaned=0"
 for %%x in (*.mp4 *.mkv *.webm *.mp3 *.m4a) do (
   if exist "%%x" (
@@ -156,6 +238,11 @@ echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%usage%R%
 echo     %INK%<%R%  %FAINT%url, then enter%R%
+echo     %INK%<%R%  %FAINT%urls.txt  (batch mode)%R%
+echo.
+echo   %MUT%prompts%R%
+echo     %INK%v/a%R%   %FAINT%video or audio (default: video)%R%
+echo     %INK%b/1/7/4%R%  %FAINT%best/1080p/720p/480p (default: best)%R%
 echo.
 echo   %MUT%commands%R%
 echo     %INK%?%R%   %FAINT%this screen%R%
@@ -165,6 +252,7 @@ echo.
 echo   %MUT%requires%R%
 echo     %FAINT%- yt-dlp.exe in this folder%R%
 echo     %FAINT%- ffmpeg.exe (for merging)%R%
+echo     %FAINT%- deno.exe (for full youtube formats)%R%
 echo     %FAINT%- PowerShell (for progress bar)%R%
 echo.
 echo   %HAIR%-----------------------------------------------%R%
