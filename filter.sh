@@ -57,6 +57,9 @@ args+=("$url")
 
 skip_patterns='^\[youtube\]|^\[info\]|^\[Merger\]|^\[Deleting\]|^\[ExtractAudio\]|^\[EmbedSubtitle\]|^\[Metadata\]|^\[download\]\s+Destination:'
 
+# Buffer error-bearing lines so we can analyze them after the bar finishes
+err_out=""
+
 "$ytdlp" "${args[@]}" 2>&1 | while IFS= read -r line; do
   if [[ "$line" =~ \[download\]\ +([0-9.]+)%.*at\ +([0-9.]+)([KMG]?)i?B/s.*ETA\ +(.+) ]]; then
     pct="${BASH_REMATCH[1]}"
@@ -97,12 +100,23 @@ skip_patterns='^\[youtube\]|^\[info\]|^\[Merger\]|^\[Deleting\]|^\[ExtractAudio\
   elif [ -n "$line" ]; then
     if $last_bar; then printf '\n' >&2; last_bar=false; fi
     printf '%s\n' "$line" >&2
+    # Accumulate non-progress lines so we can pattern-match errors at the end
+    printf '%s\n' "$line" >>"$err_buf"
   fi
 done
 
+# In bash, while-loop with pipe runs in a subshell, so err_buf lives in a tmp file instead.
+err_buf="${tmp_dir:-/tmp}/downterm_err.$$"
+trap 'rm -f "$err_buf" 2>/dev/null' EXIT
+
 if $last_bar; then printf '\n' >&2; fi
 
-err_out=$(cat)
+if [ -f "$err_buf" ]; then
+  err_out=$(cat "$err_buf" 2>/dev/null)
+  rm -f "$err_buf" 2>/dev/null
+else
+  err_out=""
+fi
 if [ -n "$err_out" ]; then
   code=""
   msg=""
@@ -120,4 +134,5 @@ if [ -n "$err_out" ]; then
   printf "\n  %s - %s  *  see github.com/onion3130/downterm/blob/main/docs/ERRORS.md\n" "$code" "$msg" >&2
   # --- Item 5: cleanup partial files on error ---
   rm -f ./*.part ./*.temp 2>/dev/null
+  exit 1
 fi

@@ -48,22 +48,23 @@ Network connectivity issue. Check:
 - If you're on a restricted network (school/work), they may block video sites
 
 ## ERR-11 — ffmpeg executable missing
-`ffmpeg.exe` isn't in the downterm folder, and yt-dlp needs it to merge video+audio. Fix:
-- Download the full Windows zip from the [latest release](https://github.com/onion3130/downterm/releases/latest) (ffmpeg bundled)
-- Or download [ffmpeg](https://www.gyan.dev/ffmpeg/builds/) and place `ffmpeg.exe` next to `download.bat`
+`ffmpeg.exe` (or `ffmpeg` on Linux/macOS) isn't available, and yt-dlp needs it to merge video+audio. Fix:
+- Run `s` (setup) in downterm — it will fetch the verified Windows build automatically
+- Or install via your package manager: `apt install ffmpeg` (Linux), `brew install ffmpeg` (macOS), `winget install ffmpeg` (Windows)
+- Or download from [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) and place `ffmpeg.exe` next to `download.bat`
 
 ## ERR-12 — deno runtime missing
-`deno.exe` isn't in the folder. Without it, YouTube extraction degrades (lower quality formats, warning messages). Fix:
-- Download the full Windows zip (deno bundled)
-- Or install deno: `winget install DenoLand.Deno` (Linux: `curl -fsSL https://deno.land/install.sh | sh`)
+`deno.exe` (or `deno` on Linux/macOS) isn't available. Without it, YouTube extraction degrades (lower quality formats, warning messages). Fix:
+- Run `s` (setup) in downterm — it will fetch a verified deno build automatically
+- Or install deno: `winget install DenoLand.Deno` (Windows), `curl -fsSL https://deno.land/install.sh | sh` (Linux/macOS)
 
 ## ERR-13 — unsupported URL — not a valid video link
 The URL you pasted isn't one yt-dlp recognizes. Make sure it's a full video link (e.g. `https://www.youtube.com/watch?v=...` or `https://youtu.be/...`). Shortened or malformed URLs won't work.
 
 ## SKIP — already downloaded
-You've downloaded this video before in this folder. downterm keeps an archive (`.downterm_archive.txt`) and skips videos that are already there. To re-download:
-- Delete the `.downterm_archive.txt` file
-- Or remove the video's ID from that file
+The output file already exists in this folder. downterm uses `--no-overwrites` to skip existing files. To re-download:
+- Delete or rename the existing video file
+- Or run downterm from a different folder (pass `--output=path/`)
 
 ---
 
