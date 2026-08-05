@@ -97,9 +97,9 @@ function Get-ErrorCode($line) {
   if ($line -match 'No video formats found')          { return @{code='ERR-07';msg='no downloadable formats found'} }
   if ($line -match 'HTTP Error 4')                    { return @{code='ERR-08';msg='HTTP 4xx from server'} }
   if ($line -match 'HTTP Error 5')                    { return @{code='ERR-09';msg='HTTP 5xx from server'} }
-  if ($line -match 'Connection (timed out|refused)')  { return @{code='ERR-10';msg='connection failed'} }
-  if ($line -match 'ffmpeg.*not.*found')              { return @{code='ERR-11';msg='ffmpeg executable missing'} }
-  if ($line -match 'deno.*not.*found')                { return @{code='ERR-12';msg='deno runtime missing'} }
+  if ($line -match 'Connection (timed out|refused|reset)')  { return @{code='ERR-10';msg='connection failed'} }
+  if ($line -match '(ffmpeg.*(not.*(found|installed)|missing)|unable to find.*ffmpeg|could not find.*ffmpeg)') { return @{code='ERR-11';msg='ffmpeg executable missing'} }
+  if ($line -match '(deno.*(not.*(found|installed)|missing)|unable to find.*deno|could not find.*deno)') { return @{code='ERR-12';msg='deno runtime missing'} }
   if ($line -match 'Unsupported URL')                 { return @{code='ERR-13';msg='unsupported URL - not a valid video link'} }
   return @{code='ERR-00';msg='unknown error'}
 }

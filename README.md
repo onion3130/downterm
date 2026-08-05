@@ -7,7 +7,7 @@ Minimal terminal UI. No window app.
 
 [![self-test](https://github.com/onion3130/downterm/actions/workflows/test.yml/badge.svg)](https://github.com/onion3130/downterm/actions/workflows/test.yml)
 
-**Current:** `3.3.0`
+**Current:** `3.4.0`
 
 ---
 
@@ -137,6 +137,8 @@ download.bat --uninstall
 ---
 
 ## releases
+
+- **`3.4.0`** � Linux/macOS now report actionable HTTP, connection, ffmpeg, and deno error codes consistently with Windows
 
 - **`3.3.0`** — `setup.bat` / `setup.ps1` / `setup.sh`; setup **always** installs PATH; manual PATH still available  
 - **`3.2.0`** — first-run PATH offer; PowerShell entrypoint  

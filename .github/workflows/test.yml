@@ -20,6 +20,11 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
 
+      - name: regression - actionable filter errors (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: bash ./tests/filter_errors.sh
+
       - name: setup - fetch pinned binaries (Linux)
         if: matrix.os == 'ubuntu-latest'
         shell: bash

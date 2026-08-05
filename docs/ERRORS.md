@@ -2,6 +2,8 @@
 
 When downterm hits an error, it shows a short code like `ERR-01` with a one-line message. This page explains each code and how to fix it.
 
+The network and tool-availability codes `ERR-08` through `ERR-12` are mapped consistently by the Windows and Linux/macOS filters.
+
 ---
 
 ## ERR-00 — unknown error

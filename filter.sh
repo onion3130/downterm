@@ -131,15 +131,21 @@ if $last_bar; then printf '\n' >&2; fi
 
 if [ -f "$err_buf" ] && [ -s "$err_buf" ] && [ "${pipe_ec:-0}" -ne 0 ]; then
   err_out=$(cat "$err_buf" 2>/dev/null || true)
-  case "$err_out" in
-    *"Video unavailable"*) code="ERR-01"; msg="video unavailable (private/deleted)" ;;
-    *"Private video"*) code="ERR-02"; msg="private video - sign in required" ;;
-    *"Members-only"*) code="ERR-03"; msg="members-only content" ;;
+  err_lower=$(printf '%s' "$err_out" | tr '[:upper:]' '[:lower:]')
+  case "$err_lower" in
+    *"video unavailable"*) code="ERR-01"; msg="video unavailable (private/deleted)" ;;
+    *"private video"*) code="ERR-02"; msg="private video - sign in required" ;;
+    *"members-only"*) code="ERR-03"; msg="members-only content" ;;
     *"geo"*"restricted"*) code="ERR-04"; msg="geo-restricted in your region" ;;
     *"age restricted"*) code="ERR-05"; msg="age-restricted - needs cookies" ;;
-    *"Sign in to confirm"*) code="ERR-06"; msg="bot detection - try again later" ;;
-    *"No video formats found"*) code="ERR-07"; msg="no downloadable formats found" ;;
-    *"Unsupported URL"*) code="ERR-13"; msg="unsupported URL - not a valid video link" ;;
+    *"sign in to confirm"*) code="ERR-06"; msg="bot detection - try again later" ;;
+    *"no video formats found"*) code="ERR-07"; msg="no downloadable formats found" ;;
+    *"http error 4"*) code="ERR-08"; msg="HTTP 4xx from server" ;;
+    *"http error 5"*) code="ERR-09"; msg="HTTP 5xx from server" ;;
+    *"connection timed out"*|*"connection refused"*|*"connection reset"*) code="ERR-10"; msg="connection failed" ;;
+    *ffmpeg*not*found*|*ffmpeg*not*installed*|*ffmpeg*missing*|*"unable to find"*ffmpeg*|*"could not find"*ffmpeg*) code="ERR-11"; msg="ffmpeg executable missing" ;;
+    *deno*not*found*|*deno*not*installed*|*deno*missing*|*"unable to find"*deno*|*"could not find"*deno*) code="ERR-12"; msg="deno runtime missing" ;;
+    *"unsupported url"*) code="ERR-13"; msg="unsupported URL - not a valid video link" ;;
     *) code="ERR-00"; msg="unknown error" ;;
   esac
   printf "\n  %s - %s  *  see github.com/onion3130/downterm/blob/main/docs/ERRORS.md\n" "$code" "$msg" >&2
