@@ -76,9 +76,10 @@ $line = [System.Drawing.Color]::FromArgb(40, 48, 62)
 function Style-Box($c) {
   $c.BackColor = $panel
   $c.ForeColor = $form.ForeColor
-  $c.FlatStyle = 'Flat'
   if ($c -is [System.Windows.Forms.TextBox]) {
     $c.BorderStyle = 'FixedSingle'
+  } elseif ($c -is [System.Windows.Forms.Button] -or $c -is [System.Windows.Forms.ComboBox]) {
+    $c.FlatStyle = 'Flat'
   }
 }
 
