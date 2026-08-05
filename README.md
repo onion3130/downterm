@@ -2,24 +2,28 @@
 
 > a quiet terminal wrapper around [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
-**Copy a link → run `downterm` → press a number.**  
+**Copy a link → type `downterm` → press a number.**  
 Minimal terminal UI. No window app.
 
 [![self-test](https://github.com/onion3130/downterm/actions/workflows/test.yml/badge.svg)](https://github.com/onion3130/downterm/actions/workflows/test.yml)
 
-**Current:** `3.2.0`
+**Current:** `3.3.0`
 
 ---
 
-## type `downterm` in PowerShell / cmd
+## setup (recommended)
 
-### One-time setup (Windows)
+### Windows
 
-1. Open the downterm folder and run **`download.bat`**  
-2. On first launch, choose **Y** when asked to add PATH  
-   · or press **`7`** in the menu  
-   · or run: `download.bat --install`  
-3. **Close that window completely**  
+1. Download / clone this repo  
+2. Double-click **`setup.bat`**  
+   · or in PowerShell from the folder:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
+```
+
+3. Close that window  
 4. Open a **new** PowerShell or cmd  
 5. Type:
 
@@ -27,20 +31,52 @@ Minimal terminal UI. No window app.
 downterm
 ```
 
-If you see *not recognized*, the terminal is still using the old PATH — open a brand-new window after install.
-
-### What install does
-
-- Writes **`downterm.cmd`** and **`downterm.ps1`** (so both cmd and PowerShell find it)
-- Adds this folder to your **user PATH**
-- Undo: `download.bat --uninstall`
+**What `setup.bat` does**
+- Downloads missing tools (`yt-dlp`, `ffmpeg`, `deno`) when needed  
+- **Always adds this folder to your user PATH**  
+- Writes `downterm.cmd` + `downterm.ps1` so the `downterm` command works  
 
 ### Linux / macOS
 
 ```bash
-./download.sh --install   # or menu → 7
-# new shell:
+chmod +x setup.sh download.sh filter.sh
+./setup.sh
+# new terminal:
 downterm
+```
+
+**What `setup.sh` does**
+- Fetches `yt-dlp` (and deno when possible)  
+- Reminds you to install `ffmpeg` via your package manager if missing  
+- **Always links** `~/.local/bin/downterm`  
+
+If `downterm` is not found after setup:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+# add that line to ~/.bashrc or ~/.zshrc for permanence
+```
+
+---
+
+## manual PATH install (always available)
+
+You can add PATH **without** re-fetching tools anytime:
+
+| | Windows | Linux / macOS |
+|--|---------|----------------|
+| Script | `setup.bat -PathOnly` | `./setup.sh --path-only` |
+| App flag | `download.bat --install` | `./download.sh --install` |
+| In menu | press **`7`** | press **`7`** |
+
+Undo PATH:
+
+```bat
+download.bat --uninstall
+```
+
+```bash
+./download.sh --uninstall
 ```
 
 ---
@@ -49,7 +85,7 @@ downterm
 
 1. **Copy** a video link in the browser  
 2. Type **`downterm`**  
-3. Press **`1`** → best video  
+3. Press **`1`** for best video  
 
 ```
   1  paste · best video
@@ -57,11 +93,33 @@ downterm
   3  paste · audio only
   4  history
   5  open folder
-  6  setup tools
-  7  add to PATH  →  type  downterm  anywhere
+  6  setup tools (+ PATH)
+  7  add to PATH only
   8  help
   9  quit
 ```
+
+---
+
+## setup script options
+
+### Windows (`setup.ps1` / `setup.bat`)
+
+| Flag | Meaning |
+|------|---------|
+| *(none)* | tools if needed **+ PATH** (default) |
+| `-PathOnly` | **PATH only** (manual re-install) |
+| `-SkipPath` | tools only, no PATH |
+| `-ForceTools` | re-download tools even if present |
+
+### Linux / macOS (`setup.sh`)
+
+| Flag | Meaning |
+|------|---------|
+| *(none)* | tools if needed **+ PATH** (default) |
+| `--path-only` | **PATH only** |
+| `--skip-path` | tools only |
+| `--force-tools` | re-fetch tools |
 
 ---
 
@@ -69,8 +127,10 @@ downterm
 
 | file | role |
 |------|------|
-| `downterm.cmd` / `downterm.ps1` | Command name for PATH |
-| `install-path.ps1` | PATH install / uninstall |
+| **`setup.bat`** / **`setup.ps1`** | Windows setup (tools + PATH) |
+| **`setup.sh`** | Linux/macOS setup (tools + PATH) |
+| `downterm.cmd` / `downterm.ps1` | Command entrypoints |
+| `install-path.ps1` | PATH add/remove helper |
 | `download.bat` / `download.sh` | Terminal menu |
 | `filter.ps1` / `filter.sh` | Progress bar + yt-dlp |
 
@@ -78,9 +138,9 @@ downterm
 
 ## releases
 
-- **`3.2.0`** — first-run PATH offer; PowerShell `downterm.ps1` entrypoint; clearer install messaging  
-- **`3.1.1`** — PATH install polish  
-- **`3.1.0`** — terminal-only; removed window GUI  
+- **`3.3.0`** — `setup.bat` / `setup.ps1` / `setup.sh`; setup **always** installs PATH; manual PATH still available  
+- **`3.2.0`** — first-run PATH offer; PowerShell entrypoint  
+- **`3.1.x`** — terminal-only + PATH basics  
 
 https://github.com/onion3130/downterm/releases
 
