@@ -179,10 +179,9 @@ menu() {
       7) install_path ;;
       8)
         clear
-        printf "\n  ${ACC}help${R}  ${FAINT}3.1.1${R}\n\n"
+        printf "\n  ${ACC}help${R}  ${FAINT}3.1.0${R}\n\n"
         printf "  Copy a link → press 1 for best video.\n"
-        printf "  Press 7 once (or: ./download.sh --install)\n"
-        printf "  Open a NEW shell → type:  downterm\n\n"
+        printf "  Press 7 once so new shells can run:  downterm\n\n"
         printf "  ${FAINT}any key...${R}\n"; read -rn1 -s
         ;;
       9|q|Q) exit 0 ;;

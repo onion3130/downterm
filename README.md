@@ -2,25 +2,77 @@
 
 > a quiet terminal wrapper around [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
-**Copy a link → open downterm → press a number.**  
-Minimal terminal UI only. No window app. No flag soup.
+**Copy a link → run `downterm` → press a number.**  
+Minimal terminal UI. No window app. No flag soup.
 
 [![self-test](https://github.com/onion3130/downterm/actions/workflows/test.yml/badge.svg)](https://github.com/onion3130/downterm/actions/workflows/test.yml)
 
-**Current:** `3.1.0`
+**Current:** `3.1.1`
 
 ---
 
-## how to use
+## type `downterm` anywhere (PATH)
+
+After a one-time install, **any new terminal** can launch downterm by typing:
+
+```bat
+downterm
+```
+
+### Windows
+
+1. Open the downterm folder and run `download.bat` once  
+2. Press **`7`** — *add to PATH*  
+   · or double-click / run: `download.bat --install`  
+3. **Close that terminal and open a new one** (PATH updates apply to new sessions)  
+4. Type:
+
+```bat
+downterm
+```
+
+What this does:
+- Ensures `downterm.cmd` exists in the downterm folder  
+- Adds **that folder** to your **user PATH**  
+- New cmd/PowerShell windows resolve `downterm` → terminal menu  
+
+Undo:
+
+```bat
+download.bat --uninstall
+```
+
+### Linux / macOS
+
+```bash
+chmod +x download.sh filter.sh
+./download.sh --install
+# or press 7 in the menu
+```
+
+Then open a **new** shell and run:
+
+```bash
+downterm
+```
+
+This links `~/.local/bin/downterm` → `download.sh`.  
+If the command is not found, add to `~/.bashrc` / `~/.zshrc`:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+---
+
+## everyday use
 
 1. In your browser, **copy** a video link  
-2. Run **downterm** (or `download.bat` / `./download.sh`)  
+2. Type **`downterm`** (or run `download.bat` / `./download.sh`)  
 3. Press **`1`** → best video downloads  
 
-That’s the whole product.
-
 ```
-  downterm  3.1.0
+  downterm  3.1.1
   ..........................................
 
   copy a link, then pick a number.
@@ -31,60 +83,17 @@ That’s the whole product.
   4  history
   5  open folder
   6  setup tools
-  7  install PATH  (type downterm anywhere)
+  7  add to PATH  →  type  downterm  anywhere
   8  help
   9  quit
-
-  >
 ```
 
 ---
 
-## install so `downterm` works anywhere
+## setup (yt-dlp / ffmpeg)
 
-### Windows
-
-1. Put the folder somewhere stable (e.g. Documents or clone path)  
-2. Run downterm once → press **`7`** (install PATH)  
-   or: `download.bat --install`  
-3. **Open a new terminal**  
-4. Type:
-
-```bat
-downterm
-```
-
-This adds the folder to your **user PATH** and uses `downterm.cmd` as the entrypoint.
-
-Remove later: `download.bat --uninstall`
-
-### Linux / macOS
-
-```bash
-chmod +x download.sh filter.sh
-./download.sh --install
-# or press 7 in the menu
-# ensure ~/.local/bin is on PATH, new shell:
-downterm
-```
-
----
-
-## setup (tools)
-
-Press **`6`** (or `download.bat --setup`) to fetch pinned **yt-dlp** / **ffmpeg** / **deno** (SHA256 via `bin/checksums.txt`).  
-Linux: install **ffmpeg** with your package manager if needed.
-
----
-
-## what it does
-
-- Clipboard → download (no typing URLs)
-- Best video+audio → **mp4**, or audio **mp3**
-- Quality pick by number (best / 1080 / 720 / 480 / 1440 / 4K)
-- Optional English subs + SponsorBlock on the quality path
-- History + open folder
-- Quiet progress bar · `ERR-NN` codes · [docs/ERRORS.md](./docs/ERRORS.md)
+Press **`6`** or run `download.bat --setup` to fetch pinned tools (see `bin/checksums.txt`).  
+On Linux, install **ffmpeg** with your package manager if needed.
 
 ---
 
@@ -92,28 +101,27 @@ Linux: install **ffmpeg** with your package manager if needed.
 
 | file | role |
 |------|------|
-| `downterm.cmd` | Windows PATH entry (`downterm`) |
+| **`downterm.cmd`** | Windows command name (`downterm`) |
+| `install-path.ps1` | Adds/removes this folder on user PATH |
 | `download.bat` | Terminal UI (Windows) |
 | `download.sh` | Terminal UI (Linux/macOS) |
 | `filter.ps1` / `filter.sh` | Progress bar + yt-dlp |
-| `bin/checksums.txt` | Pinned tool hashes |
 
 ---
 
-## releases (recent)
+## releases
 
-- `3.1.0` — **terminal-only**; removed window GUI; **PATH install** so `downterm` works; number menu  
-- `2.6` — (deprecated) WinForms experiment  
-- `2.5` — number menu introduction  
-- `2.4` and earlier — prompt / flag era  
+- **`3.1.1`** — PATH install polish + README: type **`downterm`** anywhere  
+- **`3.1.0`** — terminal-only; removed window GUI; first PATH install  
+- `2.x` — older prompt/GUI experiments  
 
-See [releases](https://github.com/onion3130/downterm/releases).
+https://github.com/onion3130/downterm/releases
 
 ---
 
 ## license
 
-MIT for downterm source. Third-party binaries: see README history / license files (ffmpeg GPL when redistributed, yt-dlp Unlicense, deno MIT).
+MIT for downterm source. Third-party tool licenses: see license files in the repo.
 
 ---
 
