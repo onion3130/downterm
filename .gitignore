@@ -20,14 +20,11 @@ desktop.ini
 *.part
 *.temp
 
-# Bundled binaries - fetched on first run via `s`/setup command.
-# Not tracked in repo. See bin/checksums.txt for pinned versions.
-yt-dlp.exe
-yt-dlp
-ffmpeg.exe
-ffmpeg
-deno.exe
-deno
+# Bundled binaries - shipped in repo + release zips for the Windows full bundle.
+# (Linux/macOS users still fetch via `s`/setup. See bin/checksums.txt for pinned versions.)
+# Binaries are tracked. Nothing to ignore here.
 
-# Agent handoff file (not for git)
+# Agent handoff (local only — not for git)
+agent.md
+AGENTS.md
 AGENT_HANDOFF.md
