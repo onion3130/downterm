@@ -1,6 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
-title downterm v2.2
+title downterm v2.3
 cd /d "%~dp0"
 rem safety: never let the window close without a pause
 goto main
@@ -61,7 +61,7 @@ for %%a in (%*) do (
 )
 
 if /i "!ARG_OP!"=="version" (
-  echo downterm v2.2
+  call :showversion
   exit /b 0
 )
 
@@ -88,7 +88,7 @@ if defined ARG_URL (
 :start
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.2%R%
+echo   %ACC%downterm%R%  %FAINT%v2.3%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%a quiet wrapper around yt-dlp.%R%
@@ -133,7 +133,7 @@ goto dodownload
 :dodownload
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.2%R%
+echo   %ACC%downterm%R%  %FAINT%v2.3%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%acquiring%R%  %FAINT%!url!%R%
@@ -255,7 +255,7 @@ goto start
 :batchdownload
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.2%R%
+echo   %ACC%downterm%R%  %FAINT%v2.3%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%[!CURRENT!/!URLCOUNT!]%R%  %FAINT%!BATCHURL!%R%
@@ -281,7 +281,7 @@ echo   %ACC%downterm%R%  %FAINT%self-test%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%downloading test video...%R%
-echo   %FAINT%https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4%R%
+echo   %FAINT%https://media.w3.org/2010/05/sintel/trailer.mp4%R%
 echo.
 echo   %HAIR%-----------------------------------------------%R%
 echo.
@@ -298,7 +298,7 @@ if not exist "yt-dlp.exe" (
 set "FFARG="
 if exist "ffmpeg.exe" set "FFARG=.\ffmpeg.exe"
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" "%FFARG%" "video" "best"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "https://media.w3.org/2010/05/sintel/trailer.mp4" "%FFARG%" "video" "best"
 set "ec=!errorlevel!"
 echo.
 echo   %HAIR%-----------------------------------------------%R%
@@ -332,6 +332,42 @@ echo.
 echo   %FAINT%setup is working. press any key to go back.%R%
 pause>nul
 goto start
+
+:showversion
+echo downterm v2.3
+echo.
+echo   %FAINT%pinned (bin/checksums.txt):%R%
+echo     yt-dlp  2026.07.04
+echo     ffmpeg  9.0
+echo     deno    2.9.4
+echo.
+echo   %FAINT%installed:%R%
+if exist "yt-dlp.exe" (
+  for /f "delims=" %%v in ('yt-dlp.exe --version 2^>nul') do set "YTVER=%%v"
+  echo     yt-dlp  !YTVER!
+) else (
+  echo     yt-dlp  %WARN%not installed - run 's'%R%
+)
+if exist "ffmpeg.exe" (
+  set "FFVER="
+  for /f "tokens=1-3" %%a in ('ffmpeg.exe -version 2^>nul') do (
+    if not defined FFVER set "FFVER=%%a %%b %%c"
+  )
+  if defined FFVER (
+    echo     ffmpeg  !FFVER!
+  ) else (
+    echo     ffmpeg  %WARN%present but no version output%R%
+  )
+) else (
+  echo     ffmpeg  %WARN%not installed - run 's'%R%
+)
+if exist "deno.exe" (
+  for /f "delims=" %%v in ('deno.exe --version 2^>nul ^| findstr "^deno"') do set "DENOVER=%%v"
+  echo     deno    !DENOVER!
+) else (
+  echo     deno    %WARN%not installed - run 's'%R%
+)
+exit /b 0
 
 :setup
 cls

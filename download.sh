@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# downterm v2.2 — Linux edition
+# downterm v2.3 — Linux edition
 # A quiet wrapper around yt-dlp.
 
 set -u
@@ -177,6 +177,35 @@ do_setup() {
   return 0
 }
 
+show_version() {
+  echo "downterm v2.3"
+  echo ""
+  echo "  ${FAINT}pinned (bin/checksums.txt):${R}"
+  echo "    yt-dlp  2026.07.04"
+  echo "    ffmpeg  9.0"
+  echo "    deno    2.9.4"
+  echo ""
+  echo "  ${FAINT}installed:${R}"
+  if [ -x "$DIR/yt-dlp" ] || command -v yt-dlp >/dev/null 2>&1; then
+    local ytdlpcmd="$DIR/yt-dlp"; [ -x "$ytdlpcmd" ] || ytdlpcmd="yt-dlp"
+    echo "    yt-dlp  $("$ytdlpcmd" --version 2>/dev/null | head -1)"
+  else
+    echo "    yt-dlp  ${WARN}not installed - run 's'${R}"
+  fi
+  if command -v ffmpeg >/dev/null 2>&1; then
+    echo "    ffmpeg $(ffmpeg -version 2>/dev/null | head -1 | awk '{print $1, $2, $3}')"
+  else
+    echo "    ffmpeg  ${WARN}not installed - apt/brew install${R}"
+  fi
+  if [ -x "$DIR/deno" ] || command -v deno >/dev/null 2>&1; then
+    local denocmd="$DIR/deno"; [ -x "$denocmd" ] || denocmd="deno"
+    echo "    deno    $("$denocmd" --version 2>/dev/null | head -1)"
+  else
+    echo "    deno    ${WARN}not installed - run 's'${R}"
+  fi
+  return 0
+}
+
 show_help() {
   clear
   printf "\n"
@@ -213,7 +242,7 @@ show_help() {
 start() {
   clear
   printf "\n"
-  printf "  ${ACC}${B}downterm${R}  ${FAINT}v2.2${R}\n"
+  printf "  ${ACC}${B}downterm${R}  ${FAINT}v2.3${R}\n"
   printf "  ${HAIR}...............................................${R}\n"
   printf "\n"
   printf "  ${MUT}a quiet wrapper around yt-dlp.${R}\n"
@@ -285,7 +314,7 @@ download() {
   local counter="${2:-}"
   clear
   printf "\n"
-  printf "  ${ACC}${B}downterm${R}  ${FAINT}v2.2${R}\n"
+  printf "  ${ACC}${B}downterm${R}  ${FAINT}v2.3${R}\n"
   printf "  ${HAIR}...............................................${R}\n"
   printf "\n"
   if [ -n "$counter" ]; then
@@ -360,12 +389,12 @@ selftest() {
   printf "  ${HAIR}...............................................${R}\n"
   printf "\n"
   printf "  ${MUT}downloading test video...${R}\n"
-  printf "  ${FAINT}https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4${R}\n"
+  printf "  ${FAINT}https://media.w3.org/2010/05/sintel/trailer.mp4${R}\n"
   printf "\n"
   printf "  ${HAIR}-----------------------------------------------${R}\n"
   printf "\n"
 
-  bash "${SCRIPT_DIR}/filter.sh" "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" "$FFARG" "$YTDLP" "video" "best"
+  bash "${SCRIPT_DIR}/filter.sh" "https://media.w3.org/2010/05/sintel/trailer.mp4" "$FFARG" "$YTDLP" "video" "best"
   local ec=$?
   printf "\n"
   printf "  ${HAIR}-----------------------------------------------${R}\n"
@@ -459,7 +488,7 @@ fi
 # dispatch
 # ============================================================
 if [ "$ARG_OP" = "version" ]; then
-  echo "downterm v2.2"
+  show_version
   exit 0
 fi
 
