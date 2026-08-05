@@ -26,7 +26,7 @@ A minimal, styled terminal wrapper around yt-dlp. Paste a URL, pick video/audio 
 ## screenshots
 
 ```
-  downterm  v2.2
+  downterm  v2.3
   ...............................................
 
   a quiet wrapper around yt-dlp.
@@ -37,7 +37,7 @@ A minimal, styled terminal wrapper around yt-dlp. Paste a URL, pick video/audio 
     video or audio? (v/a) [v]
     quality? (b/1/7/4) [b]
 
-  downterm  v2.2
+  downterm  v2.3
   ...............................................
 
   acquiring
@@ -55,7 +55,11 @@ A minimal, styled terminal wrapper around yt-dlp. Paste a URL, pick video/audio 
 
 ## setup
 
-### Option A - from source (recommended)
+### Option A - Windows full bundle (recommended for Windows)
+
+Download `downterm-vX-windows-full.zip` from the [latest release](https://github.com/onion3130/downterm/releases/latest) and extract it. Binaries (yt-dlp.exe, ffmpeg.exe, deno.exe) are pre-bundled — no first-run `s` setup required, no network fetch on launch. Just run `download.bat`.
+
+### Option B - from source
 
 ```bash
 git clone https://github.com/onion3130/downterm.git
@@ -66,11 +70,11 @@ download.bat
 chmod +x download.sh && ./download.sh
 ```
 
-On first run, type **`s`** (or `setup`) at the prompt. downterm fetches pinned, SHA256-verified copies of yt-dlp, ffmpeg, and deno directly from their official release pages. No binaries are stored in this repo - see [`bin/checksums.txt`](./bin/checksums.txt) for the pinned versions and hashes.
+On Windows, the bundled binaries (`yt-dlp.exe`, `ffmpeg.exe`, `deno.exe`) ship in the repo root so `git clone` gives you a working setup out of the box. On Linux/macOS, type **`s`** (or `setup`) at the prompt on first run — downterm fetches pinned, SHA256-verified copies of `yt-dlp` and `deno` from their official release pages; install `ffmpeg` via your system package manager. See [`bin/checksums.txt`](./bin/checksums.txt) for the pinned versions and hashes.
 
-### Option B - full install (offline)
+### Option C - re-fetch / refresh binaries
 
-Download the bundled zip from the [latest release](https://github.com/onion3130/downterm/releases/latest) and extract if you can't (or don't want to) reach the upstream servers at runtime. Binaries are included in the bundle only - never in the git repo.
+Already installed but want fresh copies? Type **`s`** (or `setup`) at the prompt. downterm re-fetches the pinned versions from upstream and verifies each SHA256 against `bin/checksums.txt`. This is also how you update to a new pinned version after `bin/checksums.txt` is bumped.
 
 ## usage
 
@@ -196,6 +200,7 @@ See all releases: https://github.com/onion3130/downterm/releases
 - `v2.0` - **type pick** (video/audio), **quality pick** (1080p/720p/480p), **batch mode** (urls.txt)
 - `v2.1` - force mp4 output (no webm), self-test anti-self-close, removed silent archive skips in favor of file-existence checks
 - `v2.2` - **first-run setup** (`s` command with SHA256-verified binary fetch), **GitHub Actions CI** on ubuntu + windows, parity between `download.bat` and `download.sh`, improved error handling (URL validation, partial-file cleanup, ffmpeg-missing warnings), **non-interactive flags** (`--mode=`, `--quality=`, `--output=`) and `downterm.conf`, clarified ffmpeg **GPL v3** license vs source MIT, playlists pass-through to yt-dlp
+- `v2.3` - **bundled binaries shipped in repo + release zip** (policy revert: yt-dlp.exe/ffmpeg.exe/deno.exe tracked again), enhanced `--version` shows pinned vs installed versions for yt-dlp/ffmpeg/deno
 
 ## license
 
