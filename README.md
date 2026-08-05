@@ -3,80 +3,55 @@
 > a quiet terminal wrapper around [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
 **Copy a link → run `downterm` → press a number.**  
-Minimal terminal UI. No window app. No flag soup.
+Minimal terminal UI. No window app.
 
 [![self-test](https://github.com/onion3130/downterm/actions/workflows/test.yml/badge.svg)](https://github.com/onion3130/downterm/actions/workflows/test.yml)
 
-**Current:** `3.1.1`
+**Current:** `3.2.0`
 
 ---
 
-## type `downterm` anywhere (PATH)
+## type `downterm` in PowerShell / cmd
 
-After a one-time install, **any new terminal** can launch downterm by typing:
+### One-time setup (Windows)
 
-```bat
+1. Open the downterm folder and run **`download.bat`**  
+2. On first launch, choose **Y** when asked to add PATH  
+   · or press **`7`** in the menu  
+   · or run: `download.bat --install`  
+3. **Close that window completely**  
+4. Open a **new** PowerShell or cmd  
+5. Type:
+
+```powershell
 downterm
 ```
 
-### Windows
+If you see *not recognized*, the terminal is still using the old PATH — open a brand-new window after install.
 
-1. Open the downterm folder and run `download.bat` once  
-2. Press **`7`** — *add to PATH*  
-   · or double-click / run: `download.bat --install`  
-3. **Close that terminal and open a new one** (PATH updates apply to new sessions)  
-4. Type:
+### What install does
 
-```bat
-downterm
-```
-
-What this does:
-- Ensures `downterm.cmd` exists in the downterm folder  
-- Adds **that folder** to your **user PATH**  
-- New cmd/PowerShell windows resolve `downterm` → terminal menu  
-
-Undo:
-
-```bat
-download.bat --uninstall
-```
+- Writes **`downterm.cmd`** and **`downterm.ps1`** (so both cmd and PowerShell find it)
+- Adds this folder to your **user PATH**
+- Undo: `download.bat --uninstall`
 
 ### Linux / macOS
 
 ```bash
-chmod +x download.sh filter.sh
-./download.sh --install
-# or press 7 in the menu
-```
-
-Then open a **new** shell and run:
-
-```bash
+./download.sh --install   # or menu → 7
+# new shell:
 downterm
-```
-
-This links `~/.local/bin/downterm` → `download.sh`.  
-If the command is not found, add to `~/.bashrc` / `~/.zshrc`:
-
-```bash
-export PATH="$HOME/.local/bin:$PATH"
 ```
 
 ---
 
 ## everyday use
 
-1. In your browser, **copy** a video link  
-2. Type **`downterm`** (or run `download.bat` / `./download.sh`)  
-3. Press **`1`** → best video downloads  
+1. **Copy** a video link in the browser  
+2. Type **`downterm`**  
+3. Press **`1`** → best video  
 
 ```
-  downterm  3.1.1
-  ..........................................
-
-  copy a link, then pick a number.
-
   1  paste · best video
   2  paste · pick quality
   3  paste · audio only
@@ -90,30 +65,22 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ---
 
-## setup (yt-dlp / ffmpeg)
-
-Press **`6`** or run `download.bat --setup` to fetch pinned tools (see `bin/checksums.txt`).  
-On Linux, install **ffmpeg** with your package manager if needed.
-
----
-
 ## files
 
 | file | role |
 |------|------|
-| **`downterm.cmd`** | Windows command name (`downterm`) |
-| `install-path.ps1` | Adds/removes this folder on user PATH |
-| `download.bat` | Terminal UI (Windows) |
-| `download.sh` | Terminal UI (Linux/macOS) |
+| `downterm.cmd` / `downterm.ps1` | Command name for PATH |
+| `install-path.ps1` | PATH install / uninstall |
+| `download.bat` / `download.sh` | Terminal menu |
 | `filter.ps1` / `filter.sh` | Progress bar + yt-dlp |
 
 ---
 
 ## releases
 
-- **`3.1.1`** — PATH install polish + README: type **`downterm`** anywhere  
-- **`3.1.0`** — terminal-only; removed window GUI; first PATH install  
-- `2.x` — older prompt/GUI experiments  
+- **`3.2.0`** — first-run PATH offer; PowerShell `downterm.ps1` entrypoint; clearer install messaging  
+- **`3.1.1`** — PATH install polish  
+- **`3.1.0`** — terminal-only; removed window GUI  
 
 https://github.com/onion3130/downterm/releases
 
@@ -121,8 +88,4 @@ https://github.com/onion3130/downterm/releases
 
 ## license
 
-MIT for downterm source. Third-party tool licenses: see license files in the repo.
-
----
-
-made with too much time and a terminal.
+MIT for downterm source. Third-party tools: see license files in the repo.
