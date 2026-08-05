@@ -12,32 +12,40 @@ A minimal, styled terminal wrapper around yt-dlp. Paste a URL, pick video/audio 
 
 - picks the **best video + best audio** stream (or audio-only mp3)
 - merges them into a single **mp4** (via ffmpeg)
-- **quality pick**: best / 1080p / 720p / 480p (video), best / medium / low (audio)
+- **quality pick**: best / 4K / 1440p / 1080p / 720p / 480p (video), best / medium / low (audio)
 - **type pick**: video or audio
+- **subtitles**: optional English auto/official subs embedded into the file
+- **SponsorBlock**: optional removal of sponsors / intros / outros (YouTube)
+- **force overwrite**: re-download even if the file already exists
+- **clipboard paste** (`p`), **history** (`h`), **open folder** (`o`), **info preview** (`i`)
 - **batch mode**: paste `urls.txt` instead of a URL, it downloads all of them
 - **playlists**: passes YouTube playlist URLs to yt-dlp natively (downloads every item)
-- **dedup by file existence**: a video that's already on disk gets skipped; delete the file to re-download
+- **dedup by file existence**: skip existing files unless you force overwrite
 - **first-run setup**: type `s` to fetch pinned, SHA256-verified copies of yt-dlp, ffmpeg, and deno
-- **non-interactive mode**: pass `<url> --mode=audio --quality=720` (or use a `downterm.conf`) for scripted use
-- **error codes**: clear `ERR-NN` codes for private/geo/age/bot/network failures - see [docs/ERRORS.md](./docs/ERRORS.md)
+- **non-interactive mode**: flags + `downterm.conf` for scripted use
+- **error codes**: clear `ERR-NN` codes — see [docs/ERRORS.md](./docs/ERRORS.md)
 - shows a **clean progress bar** with speed + ETA instead of spamming 5000 lines
 - stays open so you can grab another
 
 ## screenshots
 
 ```
-  downterm  v2.3
+  downterm  v2.4
   ...............................................
 
   a quiet wrapper around yt-dlp.
 
-  url  ? help  t test  r redo  s setup  q quit
+  url  p paste  h history  o open  i info
+  ? help  t test  r redo  s setup  q quit
 
   < https://youtube.com/watch?v=...
     video or audio? (v/a) [v]
-    quality? (b/1/7/4) [b]
+    quality? (b/k/2/1/7/4) [b]
+    embed English subs? (y/n) [n]
+    SponsorBlock remove? (y/n) [n]
+    overwrite if exists? (y/n) [n]
 
-  downterm  v2.3
+  downterm  v2.4
   ...............................................
 
   acquiring
@@ -81,10 +89,9 @@ Already installed but want fresh copies? Type **`s`** (or `setup`) at the prompt
 ### interactive (default)
 
 1. Run the script
-2. Paste a URL (or `urls.txt` for batch, or a YouTube playlist URL)
-3. Pick video/audio (`v`/`a`, default `v`)
-4. Pick quality (`b`/`1`/`7`/`4`, default `b`)
-5. File saves next to the script (or into `--output=` dir if given)
+2. Paste a URL, type `p` for clipboard, or drop a `urls.txt` for batch
+3. Pick video/audio, quality, optional subs / SponsorBlock / overwrite
+4. File saves next to the script (or into `--output=` / `OUTPUT=` dir)
 
 ### non-interactive (scripted)
 
@@ -92,13 +99,19 @@ Already installed but want fresh copies? Type **`s`** (or `setup`) at the prompt
 # single download, no prompts
 ./download.sh "https://youtube.com/watch?v=..." --mode=audio --quality=720
 
-# or set defaults in downterm.conf (loaded automatically):
-#   MODE=audio
-#   QUALITY=720
+# video with extras
+./download.sh "https://youtube.com/watch?v=..." --mode=video --quality=1080 --subs --sponsorblock
+
+# or set defaults in downterm.conf (see downterm.conf.example):
+#   MODE=video
+#   QUALITY=1080
 #   OUTPUT=./downloads
+#   SUBS=0
+#   FORCE=0
+#   SPONSORBLOCK=0
 ```
 
-CLI flags override `downterm.conf`, which overrides built-in defaults. If a URL is passed and mode/quality are fully resolved (by flags or config), no prompts appear.
+CLI flags override `downterm.conf`, which overrides built-in defaults. If a URL is passed with resolved mode/quality (flags or config), interactive prompts are skipped.
 
 ## commands
 
@@ -106,8 +119,12 @@ CLI flags override `downterm.conf`, which overrides built-in defaults. If a URL 
 |-----|--------|
 | `<url>` | download video or audio |
 | `<file.txt>` | batch mode: download all URLs from file |
+| `p` / `paste` | paste URL from clipboard and download |
+| `h` / `history` | pick from recent URLs |
+| `o` / `open` | open the download folder |
+| `i` / `info` | show title / duration / uploader, optional download |
 | `?` or `help` | open the help screen |
-| `t` or `test` | self-test: downloads a small sample from a stable Google CDN, verifies, then deletes |
+| `t` or `test` | self-test: sample download, then delete |
 | `r` or `redo` | re-download the last URL |
 | `s` or `setup` | fetch pinned yt-dlp/ffmpeg/deno binaries (SHA256-verified) |
 | `q` / `quit` / `exit` | close downterm |
@@ -117,7 +134,11 @@ CLI flags override `downterm.conf`, which overrides built-in defaults. If a URL 
 | key | meaning |
 |-----|--------|
 | `v` / `a` | video or audio (default: video) |
-| `b` / `1` / `7` / `4` | best / 1080p / 720p / 480p (default: best) |
+| `b` / `k` / `2` / `1` / `7` / `4` | best / 4K / 1440p / 1080p / 720p / 480p |
+| `b` / `m` / `l` | audio: best / medium / low |
+| subs y/n | embed English subtitles (video) |
+| sponsor y/n | SponsorBlock segment removal (video) |
+| force y/n | overwrite if file already exists |
 | `b` / `m` / `l` | audio: best / medium / low (default: best) |
 
 ## how the progress bar works
@@ -201,6 +222,7 @@ See all releases: https://github.com/onion3130/downterm/releases
 - `v2.1` - force mp4 output (no webm), self-test anti-self-close, removed silent archive skips in favor of file-existence checks
 - `v2.2` - **first-run setup** (`s` command with SHA256-verified binary fetch), **GitHub Actions CI** on ubuntu + windows, parity between `download.bat` and `download.sh`, improved error handling (URL validation, partial-file cleanup, ffmpeg-missing warnings), **non-interactive flags** (`--mode=`, `--quality=`, `--output=`) and `downterm.conf`, clarified ffmpeg **GPL v3** license vs source MIT, playlists pass-through to yt-dlp
 - `v2.3` - **bundled binaries shipped in repo + release zip** (policy revert: yt-dlp.exe/ffmpeg.exe/deno.exe tracked again), enhanced `--version` shows pinned vs installed versions for yt-dlp/ffmpeg/deno
+- `v2.4` - **clipboard paste** (`p`), **history** (`h`), **open folder** (`o`), **info preview** (`i`), **4K/1440p** quality, **English subtitles**, **SponsorBlock**, **force overwrite**, safer filenames (`title [id].ext`), conf keys `SUBS`/`FORCE`/`SPONSORBLOCK`, CLI `--subs` `--force` `--sponsorblock`, Linux/macOS parity (redo, audio quality, new commands)
 
 ## license
 

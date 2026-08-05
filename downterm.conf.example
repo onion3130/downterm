@@ -1,0 +1,9 @@
+# downterm config (copy to downterm.conf — gitignored)
+# Flags override these; interactive prompts still ask unless you pass a URL with flags.
+
+# MODE=video
+# QUALITY=best
+# OUTPUT=./downloads
+# SUBS=0
+# FORCE=0
+# SPONSORBLOCK=0
