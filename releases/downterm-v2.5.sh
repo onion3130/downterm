@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# downterm v2.6 — menu-first (no URL typing). numbers only.
+# downterm v2.5 — menu-first (no URL typing). numbers only.
 
 set -u
 ESC="\033"
@@ -30,7 +30,7 @@ FFARG=""
 if command -v ffmpeg >/dev/null 2>&1; then FFARG="$(command -v ffmpeg)"
 elif [ -x "$SCRIPT_DIR/ffmpeg" ]; then FFARG="$SCRIPT_DIR/ffmpeg"; fi
 
-if [ "${1:-}" = "--version" ]; then echo "downterm v2.6"; exit 0; fi
+if [ "${1:-}" = "--version" ]; then echo "downterm v2.5"; exit 0; fi
 if [ "${1:-}" = "--setup" ]; then
   # minimal: point users at interactive setup path via menu item 7
   echo "Run ./download.sh and press 7 for setup."
@@ -113,7 +113,7 @@ pick_quality() {
 menu() {
   while true; do
     clear
-    printf "\n  ${ACC}downterm${R}  ${FAINT}v2.6${R}\n"
+    printf "\n  ${ACC}downterm${R}  ${FAINT}v2.5${R}\n"
     printf "  ${HAIR}..........................................${R}\n\n"
     printf "  ${MUT}no typing. pick a number.${R}\n\n"
     printf "  ${INK}1${R}  paste link  ·  download best video\n"

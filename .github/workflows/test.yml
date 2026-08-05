@@ -47,18 +47,22 @@ jobs:
         shell: bash
         run: sudo apt-get update -y && sudo apt-get install -y ffmpeg
 
-      - name: self-test (Linux)
+      - name: self-test filter (Linux)
         if: matrix.os == 'ubuntu-latest'
         shell: bash
-        env:
-          NONINTERACTIVE: "1"
         run: |
-          # self-test downloads a small stable test file, then deletes it.
-          # Pipe stdin that keeps the script happy: 't' starts it, EOF lets it return.
-          printf 't\nq\n' | bash ./download.sh || true
+          # Exercise the download pipeline without the interactive menu.
+          chmod +x ./filter.sh
+          YT=./yt-dlp
+          [ -x "$YT" ] || YT=yt-dlp
+          bash ./filter.sh "https://media.w3.org/2010/05/sintel/trailer.mp4" "$(command -v ffmpeg || true)" "$YT" video best "" 0 1 0
+          rm -f ./*.mp4 ./*.mkv ./*.webm 2>/dev/null || true
 
-      - name: self-test (Windows)
+      - name: self-test filter (Windows)
         if: matrix.os == 'windows-latest'
-        shell: cmd
+        shell: powershell
         run: |
-          (echo t& echo q) | download.bat || true
+          $ff = if (Test-Path .\ffmpeg.exe) { '.\ffmpeg.exe' } else { '' }
+          & powershell -NoProfile -ExecutionPolicy Bypass -File .\filter.ps1 `
+            'https://media.w3.org/2010/05/sintel/trailer.mp4' $ff video best '' 0 1 0
+          Get-ChildItem -Include *.mp4,*.mkv,*.webm -File -ErrorAction SilentlyContinue | Remove-Item -Force

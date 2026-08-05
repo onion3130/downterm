@@ -2,7 +2,8 @@
 
 > a quiet wrapper around [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
-A minimal, styled terminal wrapper around yt-dlp. Paste a URL, pick video/audio and quality, get the file. No flags to memorize, no clutter, no noise.
+**Copy a link → open downterm → press one number (or one button).**  
+No flags. No typing URLs. Minimal dark window on Windows; number menu everywhere else.
 
 [![self-test](https://github.com/onion3130/downterm/actions/workflows/test.yml/badge.svg)](https://github.com/onion3130/downterm/actions/workflows/test.yml)
 
@@ -10,135 +11,79 @@ A minimal, styled terminal wrapper around yt-dlp. Paste a URL, pick video/audio 
 
 ## what it does
 
-- picks the **best video + best audio** stream (or audio-only mp3)
-- merges them into a single **mp4** (via ffmpeg)
-- **quality pick**: best / 4K / 1440p / 1080p / 720p / 480p (video), best / medium / low (audio)
-- **type pick**: video or audio
-- **subtitles**: optional English auto/official subs embedded into the file
-- **SponsorBlock**: optional removal of sponsors / intros / outros (YouTube)
-- **force overwrite**: re-download even if the file already exists
-- **clipboard paste** (`p`), **history** (`h`), **open folder** (`o`), **info preview** (`i`)
-- **batch mode**: paste `urls.txt` instead of a URL, it downloads all of them
-- **playlists**: passes YouTube playlist URLs to yt-dlp natively (downloads every item)
-- **dedup by file existence**: skip existing files unless you force overwrite
-- **first-run setup**: type `s` to fetch pinned, SHA256-verified copies of yt-dlp, ffmpeg, and deno
-- **non-interactive mode**: flags + `downterm.conf` for scripted use
-- **error codes**: clear `ERR-NN` codes — see [docs/ERRORS.md](./docs/ERRORS.md)
-- shows a **clean progress bar** with speed + ETA instead of spamming 5000 lines
-- stays open so you can grab another
+- **Windows GUI** (default): dark minimal window — paste button, quality dropdown, **download** click
+- **Number menu** (terminal): press `1`–`9` only — no URL typing
+- Clipboard is the source of truth (copy link in browser first)
+- Best video+audio → **mp4** (ffmpeg), or audio-only **mp3**
+- Quality: best / 4K / 1440 / 1080 / 720 / 480
+- Optional English subs + SponsorBlock from the pick-quality path / GUI checkboxes
+- History + open folder
+- Progress bar, quiet logs, clear `ERR-NN` codes — [docs/ERRORS.md](./docs/ERRORS.md)
+- Setup (`7` or GUI warning) fetches pinned yt-dlp / ffmpeg / deno
+
+## how to use (the whole point)
+
+1. In your browser: **copy** a video link  
+2. Double-click **`download.bat`** (Windows)  
+3. Click **paste** (if needed) → **download**  
+   · or in the number menu press **`1`** for best video immediately  
+
+That’s it.
 
 ## screenshots
 
 ```
-  downterm  v2.4
-  ...............................................
+  downterm  v2.6
+  ..........................................
 
-  a quiet wrapper around yt-dlp.
+  no typing. pick a number.
 
-  url  p paste  h history  o open  i info
-  ? help  t test  r redo  s setup  q quit
+  1  paste link  ·  download best video
+  2  paste link  ·  pick quality
+  3  paste link  ·  audio only
+  4  history
+  5  open folder
+  6  open window gui
+  7  setup tools
+  8  help
+  9  quit
 
-  < https://youtube.com/watch?v=...
-    video or audio? (v/a) [v]
-    quality? (b/k/2/1/7/4) [b]
-    embed English subs? (y/n) [n]
-    SponsorBlock remove? (y/n) [n]
-    overwrite if exists? (y/n) [n]
-
-  downterm  v2.4
-  ...............................................
-
-  acquiring
-  https://youtube.com/watch?v=...
-
-  -----------------------------------------------
-
-  ######################-----------  75.3%  4.8 MB/s  ETA 00:42
-
-  -----------------------------------------------
-  saved.  next to yt-dlp.exe
-
-  any key to run again.
+  >
 ```
 
 ## setup
 
-### Option A - Windows full bundle (recommended for Windows)
+### Windows
 
-Download `downterm-vX-windows-full.zip` from the [latest release](https://github.com/onion3130/downterm/releases/latest) and extract it. Binaries (yt-dlp.exe, ffmpeg.exe, deno.exe) are pre-bundled — no first-run `s` setup required, no network fetch on launch. Just run `download.bat`.
+1. Get a release or clone the repo  
+2. Double-click **`download.bat`** → GUI opens  
+3. (First time) if tools are missing, open **terminal** from the GUI or run menu **7 setup**
 
-### Option B - from source
+### Linux / macOS
 
 ```bash
 git clone https://github.com/onion3130/downterm.git
 cd downterm
-# Windows
-download.bat
-# Linux/macOS
-chmod +x download.sh && ./download.sh
+chmod +x download.sh filter.sh
+./download.sh
 ```
 
-On Windows, the bundled binaries (`yt-dlp.exe`, `ffmpeg.exe`, `deno.exe`) ship in the repo root so `git clone` gives you a working setup out of the box. On Linux/macOS, type **`s`** (or `setup`) at the prompt on first run — downterm fetches pinned, SHA256-verified copies of `yt-dlp` and `deno` from their official release pages; install `ffmpeg` via your system package manager. See [`bin/checksums.txt`](./bin/checksums.txt) for the pinned versions and hashes.
+Copy a link, press **`1`**. Install `ffmpeg` via your package manager; use menu **7** for yt-dlp.
 
-### Option C - re-fetch / refresh binaries
-
-Already installed but want fresh copies? Type **`s`** (or `setup`) at the prompt. downterm re-fetches the pinned versions from upstream and verifies each SHA256 against `bin/checksums.txt`. This is also how you update to a new pinned version after `bin/checksums.txt` is bumped.
-
-## usage
-
-### interactive (default)
-
-1. Run the script
-2. Paste a URL, type `p` for clipboard, or drop a `urls.txt` for batch
-3. Pick video/audio, quality, optional subs / SponsorBlock / overwrite
-4. File saves next to the script (or into `--output=` / `OUTPUT=` dir)
-
-### non-interactive (scripted)
-
-```bash
-# single download, no prompts
-./download.sh "https://youtube.com/watch?v=..." --mode=audio --quality=720
-
-# video with extras
-./download.sh "https://youtube.com/watch?v=..." --mode=video --quality=1080 --subs --sponsorblock
-
-# or set defaults in downterm.conf (see downterm.conf.example):
-#   MODE=video
-#   QUALITY=1080
-#   OUTPUT=./downloads
-#   SUBS=0
-#   FORCE=0
-#   SPONSORBLOCK=0
-```
-
-CLI flags override `downterm.conf`, which overrides built-in defaults. If a URL is passed with resolved mode/quality (flags or config), interactive prompts are skipped.
-
-## commands
+## menu (terminal)
 
 | key | action |
 |-----|--------|
-| `<url>` | download video or audio |
-| `<file.txt>` | batch mode: download all URLs from file |
-| `p` / `paste` | paste URL from clipboard and download |
-| `h` / `history` | pick from recent URLs |
-| `o` / `open` | open the download folder |
-| `i` / `info` | show title / duration / uploader, optional download |
-| `?` or `help` | open the help screen |
-| `t` or `test` | self-test: sample download, then delete |
-| `r` or `redo` | re-download the last URL |
-| `s` or `setup` | fetch pinned yt-dlp/ffmpeg/deno binaries (SHA256-verified) |
-| `q` / `quit` / `exit` | close downterm |
+| `1` | clipboard → best video (no other questions) |
+| `2` | clipboard → pick quality (numbers only) |
+| `3` | clipboard → audio |
+| `4` | history |
+| `5` | open folder |
+| `6` | open GUI (Windows) / help (Linux) |
+| `7` | setup tools |
+| `8` / `9` | help / quit |
 
-## prompts
-
-| key | meaning |
-|-----|--------|
-| `v` / `a` | video or audio (default: video) |
-| `b` / `k` / `2` / `1` / `7` / `4` | best / 4K / 1440p / 1080p / 720p / 480p |
-| `b` / `m` / `l` | audio: best / medium / low |
-| subs y/n | embed English subtitles (video) |
-| sponsor y/n | SponsorBlock segment removal (video) |
-| force y/n | overwrite if file already exists |
+Advanced: `download.bat --tui` forces the number menu.
 | `b` / `m` / `l` | audio: best / medium / low (default: best) |
 
 ## how the progress bar works
@@ -222,7 +167,9 @@ See all releases: https://github.com/onion3130/downterm/releases
 - `v2.1` - force mp4 output (no webm), self-test anti-self-close, removed silent archive skips in favor of file-existence checks
 - `v2.2` - **first-run setup** (`s` command with SHA256-verified binary fetch), **GitHub Actions CI** on ubuntu + windows, parity between `download.bat` and `download.sh`, improved error handling (URL validation, partial-file cleanup, ffmpeg-missing warnings), **non-interactive flags** (`--mode=`, `--quality=`, `--output=`) and `downterm.conf`, clarified ffmpeg **GPL v3** license vs source MIT, playlists pass-through to yt-dlp
 - `v2.3` - **bundled binaries shipped in repo + release zip** (policy revert: yt-dlp.exe/ffmpeg.exe/deno.exe tracked again), enhanced `--version` shows pinned vs installed versions for yt-dlp/ffmpeg/deno
-- `v2.4` - **clipboard paste** (`p`), **history** (`h`), **open folder** (`o`), **info preview** (`i`), **4K/1440p** quality, **English subtitles**, **SponsorBlock**, **force overwrite**, safer filenames (`title [id].ext`), conf keys `SUBS`/`FORCE`/`SPONSORBLOCK`, CLI `--subs` `--force` `--sponsorblock`, Linux/macOS parity (redo, audio quality, new commands)
+- `v2.4` - clipboard paste, history, info, 4K/1440, subs, SponsorBlock, force overwrite (still prompt-heavy)
+- `v2.5` - **no URL typing**: number menu only — `1` paste+best video, quality picker by number, history/folder/setup
+- `v2.6` - **Windows GUI default** (`gui.ps1`): paste button, dropdowns, one **download** click; double-click `download.bat` opens the window
 
 ## license
 
