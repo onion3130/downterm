@@ -2,6 +2,7 @@
 .downterm_history
 .downterm_last.txt
 .downterm_archive.txt
+downterm.conf
 *.part
 *.temp
 
