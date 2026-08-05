@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # downterm filter.sh — progress bar filter for yt-dlp (Linux/macOS)
-# Usage: filter.sh <url> <ffmpeg_path> <yt-dlp_path> [mode] [quality] [output]
+# Usage: filter.sh <url> <ffmpeg_path> <yt-dlp_path> [mode] [quality] [output] [subs] [force] [sponsor]
 
 url="${1:-}"
 ff="${2:-}"
@@ -8,18 +8,22 @@ ytdlp="${3:-yt-dlp}"
 mode="${4:-video}"
 quality="${5:-best}"
 output="${6:-}"
+subs="${7:-0}"
+force="${8:-0}"
+sponsor="${9:-0}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || echo .)"
 
-# --- Item 5: URL pre-validation ---
 if [[ ! "$url" =~ ^https?:// ]]; then
   printf "\n  ERR-13 - invalid URL  *  must start with http:// or https://\n" >&2
   exit 13
 fi
 
-# Build output template
-outTpl='%(title)s.%(ext)s'
-if [ -n "$output" ]; then outTpl="${output}/%(title)s.%(ext)s"; fi
+outTpl='%(title).200B [%(id)s].%(ext)s'
+if [ -n "$output" ]; then
+  mkdir -p "$output" 2>/dev/null || true
+  outTpl="${output}/%(title).200B [%(id)s].%(ext)s"
+fi
 
 if [ "$mode" = "audio" ]; then
   aq='0'
@@ -27,15 +31,20 @@ if [ "$mode" = "audio" ]; then
     medium) aq='5' ;;
     low)    aq='9' ;;
   esac
-  args=(-x --audio-format mp3 --audio-quality "$aq" -o "$outTpl" --newline)
+  args=(-x --audio-format mp3 --audio-quality "$aq" -o "$outTpl" --newline --no-playlist)
 else
   case "$quality" in
+    2160) format='bv*[ext=mp4][height<=2160]+ba[ext=m4a]/b[ext=mp4]/b' ;;
+    1440) format='bv*[ext=mp4][height<=1440]+ba[ext=m4a]/b[ext=mp4]/b' ;;
     1080) format='bv*[ext=mp4][height<=1080]+ba[ext=m4a]/b[ext=mp4]/b' ;;
     720)  format='bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4]/b' ;;
     480)  format='bv*[ext=mp4][height<=480]+ba[ext=m4a]/b[ext=mp4]/b' ;;
     *)    format='bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b' ;;
   esac
   args=(-f "$format" --merge-output-format mp4 -o "$outTpl" --newline)
+  if [[ ! "$url" =~ list= ]]; then
+    args+=(--no-playlist)
+  fi
 fi
 
 if [ -n "$ff" ]; then
@@ -50,16 +59,30 @@ elif command -v deno >/dev/null 2>&1; then
   args+=(--js-runtimes "deno:deno")
 fi
 
-# --- Item 5: dedup by file existence (no archive) ---
-args+=(--no-overwrites --continue)
+if [ "$mode" != "audio" ] && { [ "$subs" = "1" ] || [ "$subs" = "yes" ] || [ "$subs" = "true" ]; }; then
+  args+=(--write-auto-subs --write-subs --sub-langs "en.*,en" --embed-subs --convert-subs srt)
+fi
+
+if [ "$force" = "1" ] || [ "$force" = "yes" ] || [ "$force" = "true" ]; then
+  args+=(--force-overwrites)
+else
+  args+=(--no-overwrites --continue)
+fi
+
+if [ "$mode" != "audio" ] && { [ "$sponsor" = "1" ] || [ "$sponsor" = "yes" ] || [ "$sponsor" = "true" ]; }; then
+  args+=(--sponsorblock-remove "sponsor,selfpromo,interaction,intro,outro,preview")
+fi
 
 args+=("$url")
 
-skip_patterns='^\[youtube\]|^\[info\]|^\[Merger\]|^\[Deleting\]|^\[ExtractAudio\]|^\[EmbedSubtitle\]|^\[Metadata\]|^\[download\]\s+Destination:'
+skip_patterns='^\[youtube\]|^\[info\]|^\[Merger\]|^\[Deleting\]|^\[ExtractAudio\]|^\[EmbedSubtitle\]|^\[Metadata\]|^\[SponsorBlock\]|^\[SubtitlesConvertor\]|^\[download\]\s+Destination:'
 
-# Buffer error-bearing lines so we can analyze them after the bar finishes
-err_out=""
+err_buf="${TMPDIR:-/tmp}/downterm_err.$$"
+: >"$err_buf"
+trap 'rm -f "$err_buf" 2>/dev/null' EXIT
+last_bar=false
 
+set +e
 "$ytdlp" "${args[@]}" 2>&1 | while IFS= read -r line; do
   if [[ "$line" =~ \[download\]\ +([0-9.]+)%.*at\ +([0-9.]+)([KMG]?)i?B/s.*ETA\ +(.+) ]]; then
     pct="${BASH_REMATCH[1]}"
@@ -78,8 +101,7 @@ err_out=""
     pct_int="${pct%.*}"
     [ -z "$pct_int" ] && pct_int=0
     n=$(( (pct_int * 30) / 100 ))
-    filled=""
-    empty=""
+    filled=""; empty=""
     for (( i=0; i<n; i++ )); do filled+='#'; done
     for (( i=n; i<30; i++ )); do empty+='-'; done
     printf "\r  %s%s  %s%%  %s MB/s  ETA %s   " "$filled" "$empty" "$pct" "$speed_mb" "$eta" >&2
@@ -89,37 +111,26 @@ err_out=""
     pct_int="${pct%.*}"
     [ -z "$pct_int" ] && pct_int=0
     n=$(( (pct_int * 30) / 100 ))
-    filled=""
-    empty=""
+    filled=""; empty=""
     for (( i=0; i<n; i++ )); do filled+='#'; done
     for (( i=n; i<30; i++ )); do empty+='-'; done
     printf "\r  %s%s  %s%%   " "$filled" "$empty" "$pct" >&2
     last_bar=true
   elif echo "$line" | grep -qE "$skip_patterns"; then
-    : # suppress
+    :
   elif [ -n "$line" ]; then
     if $last_bar; then printf '\n' >&2; last_bar=false; fi
     printf '%s\n' "$line" >&2
-    # Accumulate non-progress lines so we can pattern-match errors at the end
     printf '%s\n' "$line" >>"$err_buf"
   fi
 done
-
-# In bash, while-loop with pipe runs in a subshell, so err_buf lives in a tmp file instead.
-err_buf="${tmp_dir:-/tmp}/downterm_err.$$"
-trap 'rm -f "$err_buf" 2>/dev/null' EXIT
+pipe_ec=${PIPESTATUS[0]}
+set +e
 
 if $last_bar; then printf '\n' >&2; fi
 
-if [ -f "$err_buf" ]; then
-  err_out=$(cat "$err_buf" 2>/dev/null)
-  rm -f "$err_buf" 2>/dev/null
-else
-  err_out=""
-fi
-if [ -n "$err_out" ]; then
-  code=""
-  msg=""
+if [ -f "$err_buf" ] && [ -s "$err_buf" ] && [ "${pipe_ec:-0}" -ne 0 ]; then
+  err_out=$(cat "$err_buf" 2>/dev/null || true)
   case "$err_out" in
     *"Video unavailable"*) code="ERR-01"; msg="video unavailable (private/deleted)" ;;
     *"Private video"*) code="ERR-02"; msg="private video - sign in required" ;;
@@ -132,7 +143,7 @@ if [ -n "$err_out" ]; then
     *) code="ERR-00"; msg="unknown error" ;;
   esac
   printf "\n  %s - %s  *  see github.com/onion3130/downterm/blob/main/docs/ERRORS.md\n" "$code" "$msg" >&2
-  # --- Item 5: cleanup partial files on error ---
-  rm -f ./*.part ./*.temp 2>/dev/null
-  exit 1
+  rm -f ./*.part ./*.temp 2>/dev/null || true
 fi
+
+exit "${pipe_ec:-0}"

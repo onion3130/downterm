@@ -1,6 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
-title downterm v2.3
+title downterm v2.4
 cd /d "%~dp0"
 rem safety: never let the window close without a pause
 goto main
@@ -26,34 +26,46 @@ set "INK=%ESC%[38;2;235;240;248m"
 set "ACC=%ESC%[38;2;160;190;235m"
 set "WARN=%ESC%[38;2;225;180;120m"
 
-mode con: cols=60 lines=22
+mode con: cols=60 lines=24
 
-rem --- Item 6: load config from downterm.conf if present ---
+rem --- load config from downterm.conf if present ---
 set "CFG_MODE="
 set "CFG_QUALITY="
 set "CFG_OUTPUT="
+set "CFG_SUBS="
+set "CFG_FORCE="
+set "CFG_SPONSOR="
 if exist "%~dp0downterm.conf" (
   for /f "usebackq eol=# tokens=1,2 delims==" %%a in ("%~dp0downterm.conf") do (
-    if /i "%%a"=="MODE"    set "CFG_MODE=%%b"
-    if /i "%%a"=="QUALITY" set "CFG_QUALITY=%%b"
-    if /i "%%a"=="OUTPUT"  set "CFG_OUTPUT=%%b"
+    if /i "%%a"=="MODE"         set "CFG_MODE=%%b"
+    if /i "%%a"=="QUALITY"      set "CFG_QUALITY=%%b"
+    if /i "%%a"=="OUTPUT"       set "CFG_OUTPUT=%%b"
+    if /i "%%a"=="SUBS"         set "CFG_SUBS=%%b"
+    if /i "%%a"=="FORCE"        set "CFG_FORCE=%%b"
+    if /i "%%a"=="SPONSORBLOCK" set "CFG_SPONSOR=%%b"
   )
 )
 
-rem --- Item 6: parse CLI flags (download.bat <url> [--mode=..] [--quality=..] [--output=..] [--setup] [--version]) ---
+rem --- CLI: download.bat <url> [--mode=] [--quality=] [--output=] [--subs] [--force] [--sponsorblock] [--setup] [--version] ---
 set "ARG_URL="
 set "ARG_MODE="
 set "ARG_QUALITY="
 set "ARG_OUTPUT="
+set "ARG_SUBS="
+set "ARG_FORCE="
+set "ARG_SPONSOR="
 set "ARG_OP="
 set "NONFLAG=0"
 for %%a in (%*) do (
   set "TOK=%%a"
-  if "!TOK:~0,7!"=="--mode="    set "ARG_MODE=!TOK:~7!"
-  if "!TOK:~0,10!"=="--quality=" set "ARG_QUALITY=!TOK:~10!"
-  if "!TOK:~0,9!"=="--output="  set "ARG_OUTPUT=!TOK:~9!"
-  if /i "!TOK!"=="--setup"      set "ARG_OP=setup"
-  if /i "!TOK!"=="--version"    set "ARG_OP=version"
+  if "!TOK:~0,7!"=="--mode="         set "ARG_MODE=!TOK:~7!"
+  if "!TOK:~0,10!"=="--quality="     set "ARG_QUALITY=!TOK:~10!"
+  if "!TOK:~0,9!"=="--output="       set "ARG_OUTPUT=!TOK:~9!"
+  if /i "!TOK!"=="--subs"            set "ARG_SUBS=1"
+  if /i "!TOK!"=="--force"           set "ARG_FORCE=1"
+  if /i "!TOK!"=="--sponsorblock"    set "ARG_SPONSOR=1"
+  if /i "!TOK!"=="--setup"           set "ARG_OP=setup"
+  if /i "!TOK!"=="--version"         set "ARG_OP=version"
   if not "!TOK:~0,2!"=="--" (
     set /a NONFLAG+=1
     if !NONFLAG! equ 1 set "ARG_URL=!TOK!"
@@ -70,30 +82,42 @@ if /i "!ARG_OP!"=="setup" (
   exit /b 0
 )
 
-rem --- if URL + complete config/flags, run non-interactively ---
+rem defaults from config then flags
+set "MODE=%CFG_MODE%"
+if defined ARG_MODE set "MODE=%ARG_MODE%"
+set "QUALITY=%CFG_QUALITY%"
+if defined ARG_QUALITY set "QUALITY=%ARG_QUALITY%"
+set "SUBS=%CFG_SUBS%"
+if defined ARG_SUBS set "SUBS=%ARG_SUBS%"
+set "FORCE=%CFG_FORCE%"
+if defined ARG_FORCE set "FORCE=%ARG_FORCE%"
+set "SPONSOR=%CFG_SPONSOR%"
+if defined ARG_SPONSOR set "SPONSOR=%ARG_SPONSOR%"
+if defined CFG_OUTPUT if not defined ARG_OUTPUT set "ARG_OUTPUT=%CFG_OUTPUT%"
+if not defined MODE set "MODE=video"
+if not defined QUALITY set "QUALITY=best"
+if not defined SUBS set "SUBS=0"
+if not defined FORCE set "FORCE=0"
+if not defined SPONSOR set "SPONSOR=0"
+
+rem --- non-interactive: URL present ---
 if defined ARG_URL (
-  set "MODE=%CFG_MODE%"
-  if defined ARG_MODE set "MODE=%ARG_MODE%"
-  set "QUALITY=%CFG_QUALITY%"
-  if defined ARG_QUALITY set "QUALITY=%ARG_QUALITY%"
-  if defined CFG_OUTPUT if not defined ARG_OUTPUT set "ARG_OUTPUT=%CFG_OUTPUT%"
-  if not defined MODE set "MODE=video"
-  if not defined QUALITY set "QUALITY=best"
   set "url=!ARG_URL!"
-  rem save last url for redo
-  > "%~dp0.downterm_last.txt" echo !url!
+  call :savelast
+  call :savehistory
   goto dodownload
 )
 
 :start
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.3%R%
+echo   %ACC%downterm%R%  %FAINT%v2.4%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%a quiet wrapper around yt-dlp.%R%
 echo.
-echo   %FAINT%url  ? help  t test  r redo  s setup  q quit%R%
+echo   %FAINT%url  p paste  h history  o open  i info%R%
+echo   %FAINT%? help  t test  r redo  s setup  q quit%R%
 echo.
 set /p "url=  %INK%<%R% "
 if "!url!"=="" (
@@ -112,28 +136,35 @@ if /i "!url!"=="r" goto redolast
 if /i "!url!"=="redo" goto redolast
 if /i "!url!"=="s" goto setup
 if /i "!url!"=="setup" goto setup
+if /i "!url!"=="p" goto pasteclip
+if /i "!url!"=="paste" goto pasteclip
+if /i "!url!"=="h" goto showhistory
+if /i "!url!"=="history" goto showhistory
+if /i "!url!"=="o" goto openfolder
+if /i "!url!"=="open" goto openfolder
+if /i "!url!"=="i" goto infomode
+if /i "!url!"=="info" goto infomode
 if /i "!url!"=="q" exit /b 0
 if /i "!url!"=="quit" exit /b 0
 if /i "!url!"=="exit" exit /b 0
 
-rem --- save last URL ---
-> ".downterm_last.txt" echo !url!
+call :savelast
+call :savehistory
 
-rem --- detect batch mode (input is an existing file) ---
 if exist "!url!" (
   set "BATCHFILE=!url!"
   goto batchmode
 )
 
-rem --- single download: ask type + quality ---
 call :asktype
 call :askquality
+call :askextras
 goto dodownload
 
 :dodownload
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.3%R%
+echo   %ACC%downterm%R%  %FAINT%v2.4%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%acquiring%R%  %FAINT%!url!%R%
@@ -153,14 +184,18 @@ if not exist "yt-dlp.exe" (
 set "FFARG="
 if exist "ffmpeg.exe" set "FFARG=.\ffmpeg.exe"
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "!url!" "%FFARG%" "!MODE!" "!QUALITY!" "!ARG_OUTPUT!"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "!url!" "%FFARG%" "!MODE!" "!QUALITY!" "!ARG_OUTPUT!" "!SUBS!" "!FORCE!" "!SPONSOR!"
 set "ec=!errorlevel!"
 echo.
 echo   %HAIR%-----------------------------------------------%R%
 if !ec! gtr 0 (
   echo   %WARN%finished with warnings.%R%  %FAINT%see error code above%R%
 ) else (
-  echo   %GOOD%saved.%R%  %FAINT%next to yt-dlp.exe%R%
+  if defined ARG_OUTPUT (
+    echo   %GOOD%saved.%R%  %FAINT%!ARG_OUTPUT!%R%
+  ) else (
+    echo   %GOOD%saved.%R%  %FAINT%next to yt-dlp.exe%R%
+  )
 )
 echo.
 echo   %FAINT%any key to run again.%R%
@@ -182,17 +217,165 @@ if /i "!MODE!"=="audio" (
   set /p "QUALITY=  %MUT%audio quality? (b/m/l) [%ink%b%MUT%]%R% "
   if /i "!QUALITY!"=="m" set "QUALITY=medium" & goto :eof
   if /i "!QUALITY!"=="l" set "QUALITY=low" & goto :eof
-  set "QUALITY=abest"
+  set "QUALITY=best"
   goto :eof
 )
 echo.
-echo   %FAINT%  b = best   1 = 1080p   7 = 720p   4 = 480p%R%
-set /p "QUALITY=  %MUT%quality? (b/1/7/4) [%ink%b%MUT%]%R% "
+echo   %FAINT%  b=best  k=4K  2=1440  1=1080  7=720  4=480%R%
+set /p "QUALITY=  %MUT%quality? (b/k/2/1/7/4) [%ink%b%MUT%]%R% "
+if /i "!QUALITY!"=="k" set "QUALITY=2160" & goto :eof
+if /i "!QUALITY!"=="2" set "QUALITY=1440" & goto :eof
 if /i "!QUALITY!"=="1" set "QUALITY=1080" & goto :eof
 if /i "!QUALITY!"=="7" set "QUALITY=720" & goto :eof
 if /i "!QUALITY!"=="4" set "QUALITY=480" & goto :eof
 set "QUALITY=best"
 goto :eof
+
+:askextras
+if /i "!MODE!"=="audio" (
+  set "SUBS=0"
+  set "SPONSOR=0"
+  goto :askforce
+)
+echo.
+echo   %FAINT%  y = yes   n = no%R%
+set /p "SUBS=  %MUT%embed English subs? (y/n) [%ink%n%MUT%]%R% "
+if /i "!SUBS!"=="y" (set "SUBS=1") else (set "SUBS=0")
+echo.
+set /p "SPONSOR=  %MUT%SponsorBlock remove? (y/n) [%ink%n%MUT%]%R% "
+if /i "!SPONSOR!"=="y" (set "SPONSOR=1") else (set "SPONSOR=0")
+:askforce
+echo.
+set /p "FORCE=  %MUT%overwrite if exists? (y/n) [%ink%n%MUT%]%R% "
+if /i "!FORCE!"=="y" (set "FORCE=1") else (set "FORCE=0")
+goto :eof
+
+:savelast
+> "%~dp0.downterm_last.txt" echo !url!
+goto :eof
+
+:savehistory
+if "!url!"=="" goto :eof
+echo !url!>> "%~dp0.downterm_history"
+rem keep last ~30 lines
+if exist "%~dp0.downterm_history" (
+  powershell -NoProfile -Command "$p='%~dp0.downterm_history'; if (Test-Path $p) { $l=Get-Content $p | Where-Object { $_.Trim() -ne '' }; if ($l.Count -gt 30) { $l[-30..-1] | Set-Content $p } }"
+)
+goto :eof
+
+:pasteclip
+set "url="
+for /f "usebackq delims=" %%c in (`powershell -NoProfile -Command "try { (Get-Clipboard -Raw).Trim() } catch { '' }"`) do set "url=%%c"
+if "!url!"=="" (
+  echo.
+  echo   %BAD%clipboard empty.%R%
+  echo   %FAINT%press any key...%R%
+  pause>nul
+  goto start
+)
+echo.
+echo   %MUT%clipboard:%R%  %FAINT%!url!%R%
+echo.
+call :savelast
+call :savehistory
+if exist "!url!" (
+  set "BATCHFILE=!url!"
+  goto batchmode
+)
+call :asktype
+call :askquality
+call :askextras
+goto dodownload
+
+:showhistory
+cls
+echo.
+echo   %ACC%downterm%R%  %FAINT%history%R%
+echo   %HAIR%...............................................%R%
+echo.
+if not exist "%~dp0.downterm_history" (
+  echo   %FAINT%  no history yet.%R%
+  echo.
+  echo   %FAINT%  any key...%R%
+  pause>nul
+  goto start
+)
+set "HCOUNT=0"
+for /f "usebackq delims=" %%h in ("%~dp0.downterm_history") do (
+  set /a HCOUNT+=1
+  set "H!HCOUNT!=%%h"
+)
+if !HCOUNT! lss 1 (
+  echo   %FAINT%  no history yet.%R%
+  echo.
+  echo   %FAINT%  any key...%R%
+  pause>nul
+  goto start
+)
+set "SHOWFROM=1"
+if !HCOUNT! gtr 12 set /a SHOWFROM=HCOUNT-11
+set "N=0"
+for /l %%i in (!SHOWFROM!,1,!HCOUNT!) do (
+  set /a N+=1
+  call set "HLINE=%%H%%i%%"
+  echo   !N!  !HLINE!
+)
+echo.
+set /p "HPICK=  %MUT%number to redownload (or enter)%R% "
+if "!HPICK!"=="" goto start
+set /a IDX=SHOWFROM+HPICK-1
+if !IDX! lss 1 goto start
+if !IDX! gtr !HCOUNT! goto start
+call set "url=%%H!IDX!%%"
+if "!url!"=="" goto start
+echo.
+echo   %MUT%picked:%R%  %FAINT%!url!%R%
+call :savelast
+call :asktype
+call :askquality
+call :askextras
+goto dodownload
+
+:openfolder
+set "OPENDIR=%~dp0"
+if defined ARG_OUTPUT set "OPENDIR=!ARG_OUTPUT!"
+if defined CFG_OUTPUT if not defined ARG_OUTPUT set "OPENDIR=!CFG_OUTPUT!"
+if not exist "!OPENDIR!" set "OPENDIR=%~dp0"
+start "" explorer "!OPENDIR!"
+goto start
+
+:infomode
+echo.
+set /p "url=  %MUT%url to inspect%R%  %INK%<%R% "
+if "!url!"=="" goto start
+if not exist "yt-dlp.exe" (
+  echo   %BAD%yt-dlp.exe not found.%R%
+  pause>nul
+  goto start
+)
+echo.
+echo   %MUT%fetching info...%R%
+echo.
+yt-dlp.exe --no-download --print "%%(title)s" --print "%%(duration_string)s" --print "%%(uploader)s" --print "%%(webpage_url)s" "!url!" 2>nul
+if errorlevel 1 (
+  echo   %WARN%could not fetch info.%R%
+) else (
+  echo.
+  echo   %FAINT%  d = download this   other = back%R%
+  set /p "INEXT=  %MUT%next?%R% "
+  if /i "!INEXT!"=="d" (
+    call :savelast
+    call :savehistory
+    call :asktype
+    call :askquality
+    call :askextras
+    goto dodownload
+  )
+)
+echo.
+echo   %FAINT%any key...%R%
+pause>nul
+goto start
 
 :redolast
 if not exist ".downterm_last.txt" (
@@ -215,6 +398,7 @@ echo   %MUT%redoing:%R%  %FAINT%!url!%R%
 echo.
 call :asktype
 call :askquality
+call :askextras
 goto dodownload
 
 :batchmode
@@ -222,8 +406,8 @@ echo.
 echo   %MUT%batch file detected.%R%  %FAINT%!BATCHFILE!%R%
 call :asktype
 call :askquality
+call :askextras
 
-rem --- count URLs in file (non-blank, non-#) ---
 set "URLCOUNT=0"
 for /f "usebackq eol=# tokens=*" %%a in ("!BATCHFILE!") do set /a URLCOUNT+=1
 
@@ -255,15 +439,16 @@ goto start
 :batchdownload
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%v2.3%R%
+echo   %ACC%downterm%R%  %FAINT%v2.4%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%[!CURRENT!/!URLCOUNT!]%R%  %FAINT%!BATCHURL!%R%
 echo.
 echo   %HAIR%-----------------------------------------------%R%
 echo.
-
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "!BATCHURL!" "%FFARG%" "!MODE!" "!QUALITY!"
+set "url=!BATCHURL!"
+call :savehistory
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "!BATCHURL!" "%FFARG%" "!MODE!" "!QUALITY!" "!ARG_OUTPUT!" "!SUBS!" "!FORCE!" "!SPONSOR!"
 set "ec=!errorlevel!"
 echo.
 if !ec! equ 0 (
@@ -298,7 +483,7 @@ if not exist "yt-dlp.exe" (
 set "FFARG="
 if exist "ffmpeg.exe" set "FFARG=.\ffmpeg.exe"
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "https://media.w3.org/2010/05/sintel/trailer.mp4" "%FFARG%" "video" "best"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "https://media.w3.org/2010/05/sintel/trailer.mp4" "%FFARG%" "video" "best" "" "0" "1" "0"
 set "ec=!errorlevel!"
 echo.
 echo   %HAIR%-----------------------------------------------%R%
@@ -334,7 +519,7 @@ pause>nul
 goto start
 
 :showversion
-echo downterm v2.3
+echo downterm v2.4
 echo.
 echo   %FAINT%pinned (bin/checksums.txt):%R%
 echo     yt-dlp  2026.07.04
@@ -379,7 +564,6 @@ echo   %MUT%fetching pinned binaries...%R%
 echo   %FAINT%see bin/checksums.txt for versions and hashes%R%
 echo.
 
-rem --- read checksums.txt and resolve pinned urls ---
 set "YTURL="
 set "YTHASH="
 set "FFURL="
@@ -411,7 +595,6 @@ for /f "usebackq tokens=1,2,3,4 eol=#" %%a in ("%~dp0bin\checksums.txt") do (
   )
 )
 
-rem --- ensure curl is available ---
 where curl.exe >nul 2>&1
 if errorlevel 1 goto :nocurl
 goto :hcurl
@@ -424,7 +607,6 @@ pause>nul
 goto start
 :hcurl
 
-rem --- yt-dlp.exe ---
 if exist "yt-dlp.exe" (
   echo   %FAINT%yt-dlp.exe already present, skipping.%R%
   goto :ytok
@@ -437,7 +619,6 @@ if errorlevel 1 goto setupfail
 echo   %GOOD%yt-dlp.exe verified.%R%
 :ytok
 
-rem --- ffmpeg.exe (extract from essentials zip) ---
 if exist "ffmpeg.exe" (
   echo   %FAINT%ffmpeg.exe already present, skipping.%R%
   goto :ffok
@@ -462,7 +643,6 @@ if exist "ffmpeg.zip.tmp" del /q "ffmpeg.zip.tmp" 2>nul
 if exist "ffmpeg.zip" del /q "ffmpeg.zip" 2>nul
 :ffok
 
-rem --- deno.exe (optional, extract from deno zip) ---
 if exist "deno.exe" (
   echo   %FAINT%deno.exe already present, skipping.%R%
   goto :denook
@@ -510,7 +690,6 @@ pause>nul
 goto start
 
 :verifyhash
-rem args: %1 = tmpfile, %2 = expected sha256, %3 = final name
 set "TMPF=%~1"
 set "EXPECTED=%~2"
 set "FINAL=%~3"
@@ -518,7 +697,6 @@ set "ACTUAL="
 for /f "skip=1 tokens=* delims=" %%i in ('certutil -hashfile "%TMPF%" SHA256 2^>nul') do (
   if not defined ACTUAL set "ACTUAL=%%i"
 )
-rem certutil echoes hash on second line with leading spaces; strip them
 set "ACTUAL=%ACTUAL: =%"
 set "ACTUAL=%ACTUAL:~0,64%"
 if /i not "!ACTUAL!"=="%EXPECTED%" goto :hashbad
@@ -542,7 +720,7 @@ exit /b 0
 :help
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%help%R%
+echo   %ACC%downterm%R%  %FAINT%help  v2.4%R%
 echo   %HAIR%...............................................%R%
 echo.
 echo   %MUT%usage%R%
@@ -550,21 +728,25 @@ echo     %INK%<%R%  %FAINT%url, then enter%R%
 echo     %INK%<%R%  %FAINT%urls.txt  (batch mode)%R%
 echo.
 echo   %MUT%prompts%R%
-echo     %INK%v/a%R%     %FAINT%video or audio (default: video)%R%
-echo     %INK%b/1/7/4%R%  %FAINT%best/1080p/720p/480p%R%
-echo     %INK%b/m/l%R%    %FAINT%audio: best/medium/low%R%
+echo     %INK%v/a%R%        %FAINT%video or audio%R%
+echo     %INK%b/k/2/1/7/4%R% %FAINT%best/4K/1440/1080/720/480%R%
+echo     %INK%subs%R%       %FAINT%embed English subtitles%R%
+echo     %INK%sponsor%R%    %FAINT%SponsorBlock cleanup%R%
+echo     %INK%force%R%      %FAINT%overwrite existing file%R%
 echo.
 echo   %MUT%commands%R%
-echo     %INK%?%R%   %FAINT%this screen%R%
-echo     %INK%t%R%   %FAINT%self-test (download sample, then delete)%R%
-echo     %INK%r%R%   %FAINT%redo last download%R%
-echo     %INK%s%R%   %FAINT%setup (fetch yt-dlp.exe, ffmpeg.exe, deno.exe)%R%
-echo     %INK%q%R%   %FAINT%quit%R%
+echo     %INK%p%R%  %FAINT%paste URL from clipboard%R%
+echo     %INK%h%R%  %FAINT%history (pick a past URL)%R%
+echo     %INK%o%R%  %FAINT%open download folder%R%
+echo     %INK%i%R%  %FAINT%info (title/duration) then optional download%R%
+echo     %INK%?%R%  %FAINT%this screen%R%
+echo     %INK%t%R%  %FAINT%self-test%R%
+echo     %INK%r%R%  %FAINT%redo last%R%
+echo     %INK%s%R%  %FAINT%setup binaries%R%
+echo     %INK%q%R%  %FAINT%quit%R%
 echo.
-echo   %MUT%requires%R%
-echo     %FAINT%- run 's' on first launch to fetch yt-dlp.exe,%R%
-echo       %FAINT%ffmpeg.exe, and deno.exe (verified by SHA256)%R%
-echo     %FAINT%- PowerShell (for progress bar)%R%
+echo   %MUT%flags%R%
+echo     %FAINT%--mode= --quality= --output= --subs --force --sponsorblock%R%
 echo.
 echo   %HAIR%-----------------------------------------------%R%
 echo.
@@ -572,5 +754,4 @@ echo   %FAINT%any key to go back.%R%
 pause>nul
 goto start
 
-rem catch-all: if flow ever falls through, don't close the window
 goto die

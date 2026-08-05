@@ -3,52 +3,67 @@ param(
   [string]$ff,
   [string]$mode = "video",
   [string]$quality = "best",
-  [string]$output = ""
+  [string]$output = "",
+  [string]$subs = "0",
+  [string]$force = "0",
+  [string]$sponsor = "0"
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
-# --- Item 5: URL pre-validation ---
 if ($url -notmatch '^https?://') {
   [Console]::Error.WriteLine("")
   [Console]::Error.WriteLine("  ERR-13 - invalid URL  *  must start with http:// or https://")
   exit 13
 }
 
-# Detect playlist URL but allow it through (yt-dlp handles playlists natively)
-$playlist = $false
-if ($url -match 'list=[^&]+') { $playlist = $true }
-
-# --- Item 5: Encourage users to use ffmpeg if missing on Windows ---
 $warnNoFf = (-not $ff) -and (-not (Test-Path '.\ffmpeg.exe')) -and (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue))
 if ($warnNoFf -and ($mode -ne "audio")) {
   [Console]::Error.WriteLine("  WARN - ffmpeg not found; some videos will fail to merge. Run 's' to fetch it.")
 }
 
-# Build yt-dlp args based on mode + quality
-# Force mp4 video / mp3 audio - never webm
+$outTpl = '%(title).200B [%(id)s].%(ext)s'
+if ($output) {
+  if (-not (Test-Path -LiteralPath $output)) {
+    New-Item -ItemType Directory -Path $output -Force | Out-Null
+  }
+  $outTpl = (Join-Path $output '%(title).200B [%(id)s].%(ext)s')
+}
+
 if ($mode -eq "audio") {
   $aq = '0'
   if ($quality -eq "medium") { $aq = '5' }
   elseif ($quality -eq "low") { $aq = '9' }
-  $outTpl = '%(title)s.%(ext)s'
-  if ($output) { $outTpl = "$output/%(title)s.%(ext)s" }
-  $ytargs = @('-x','--audio-format','mp3','--audio-quality',$aq,'-o',$outTpl,'--newline')
+  $ytargs = @('-x','--audio-format','mp3','--audio-quality',$aq,'-o',$outTpl,'--newline','--no-playlist')
 } else {
   $format = switch ($quality) {
+    "2160" { 'bv*[ext=mp4][height<=2160]+ba[ext=m4a]/b[ext=mp4]/b' }
+    "1440" { 'bv*[ext=mp4][height<=1440]+ba[ext=m4a]/b[ext=mp4]/b' }
     "1080" { 'bv*[ext=mp4][height<=1080]+ba[ext=m4a]/b[ext=mp4]/b' }
     "720"  { 'bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4]/b' }
     "480"  { 'bv*[ext=mp4][height<=480]+ba[ext=m4a]/b[ext=mp4]/b' }
     default { 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b' }
   }
-  $outTpl = '%(title)s.%(ext)s'
-  if ($output) { $outTpl = "$output/%(title)s.%(ext)s" }
   $ytargs = @('-f',$format,'--merge-output-format','mp4','-o',$outTpl,'--newline')
+  if ($url -notmatch 'list=') { $ytargs += '--no-playlist' }
 }
 
 if ($ff) { $ytargs += @('--ffmpeg-location',$ff) }
 if (Test-Path '.\deno.exe') { $ytargs += @('--js-runtimes','deno:.\deno.exe') }
-# --- Item 5: dedup by file existence (no archive) ---
-$ytargs += @('--no-overwrites','--continue')
+
+if ($mode -ne "audio" -and ($subs -eq "1" -or $subs -eq "yes" -or $subs -eq "true")) {
+  $ytargs += @('--write-auto-subs','--write-subs','--sub-langs','en.*,en','--embed-subs','--convert-subs','srt')
+}
+
+if ($force -eq "1" -or $force -eq "yes" -or $force -eq "true") {
+  $ytargs += @('--force-overwrites')
+} else {
+  $ytargs += @('--no-overwrites','--continue')
+}
+
+if ($mode -ne "audio" -and ($sponsor -eq "1" -or $sponsor -eq "yes" -or $sponsor -eq "true")) {
+  $ytargs += @('--sponsorblock-remove','sponsor,selfpromo,interaction,intro,outro,preview')
+}
+
 $ytargs += $url
 
 $suppressPatterns = @(
@@ -59,6 +74,8 @@ $suppressPatterns = @(
   '^\[ExtractAudio\]',
   '^\[EmbedSubtitle\]',
   '^\[Metadata\]',
+  '^\[SponsorBlock\]',
+  '^\[SubtitlesConvertor\]',
   '^\[download\]\s+Destination:',
   'WARNING.*has already been downloaded'
 )
@@ -100,7 +117,6 @@ $p.StartInfo.RedirectStandardError = $true
 [void]$p.Start()
 
 $lastBar = $false
-$errLine = ""
 
 while (-not $p.StandardOutput.EndOfStream) {
   $line = $p.StandardOutput.ReadLine()
@@ -161,7 +177,6 @@ if ($err) {
 
 $p.WaitForExit()
 
-# --- Item 5: cleanup partial files on failure ---
 if ($p.ExitCode -ne 0) {
   Get-ChildItem -Filter '*.part' -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
   Get-ChildItem -Filter '*.temp' -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
