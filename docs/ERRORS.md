@@ -63,6 +63,11 @@ Network connectivity issue. Check:
 ## ERR-13 — unsupported URL — not a valid video link
 The URL you pasted isn't one yt-dlp recognizes. Make sure it's a full video link (e.g. `https://www.youtube.com/watch?v=...` or `https://youtu.be/...`). Shortened or malformed URLs won't work.
 
+## ERR-14 — cookies file not found
+You told downterm to use a cookies file (`--cookies=path`, or `COOKIES=` in `downterm.conf`), but that file doesn't exist. Fix:
+- Double-check the path (spaces in the path need quotes on the command line: `--cookies="C:\my cookies.txt"`)
+- Export cookies from your browser first (a Netscape-format `cookies.txt`), or remove the `COOKIES=` line from `downterm.conf` to download anonymously.
+
 ## SKIP — already downloaded
 The output file already exists in this folder. downterm uses `--no-overwrites` to skip existing files. To re-download:
 - Delete or rename the existing video file

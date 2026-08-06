@@ -11,7 +11,31 @@ Minimal terminal UI. No window app.
 
 ---
 
-## setup (recommended)
+# downterm
+
+> a quiet terminal wrapper around [yt-dlp](https://github.com/yt-dlp/yt-dlp)
+
+**Copy a link → type `downterm` → press a number.**  
+Minimal terminal UI. No window app. No Electron. Nothing to configure.
+
+[![self-test](https://github.com/onion3130/downterm/actions/workflows/test.yml/badge.svg)](https://github.com/onion3130/downterm/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+**Current:** `4.0.0`
+
+---
+
+## install in one line (no git, no clone)
+
+| | |
+|--|--|
+| **Windows** (PowerShell) | `irm https://raw.githubusercontent.com/onion3130/downterm/main/install.ps1 \| iex` |
+| **Linux / macOS** | `curl -fsSL https://raw.githubusercontent.com/onion3130/downterm/main/install.sh \| bash` |
+
+The installer pulls the latest release, fetches verified `yt-dlp`/`ffmpeg`/`deno`
+(a SHA-256-checked setup), and puts `downterm` on PATH. Open a **new** terminal and type `downterm`.
+
+### manual setup
 
 ### Windows
 
@@ -97,7 +121,30 @@ download.bat --uninstall
   7  add to PATH only
   8  help
   9  quit
+  0  playlist · pick items
 ```
+
+### what's built in (v4.0)
+
+- **Playlist picker** — press `0`, paste a playlist, choose `all` / `1-3` / `2,5,7`
+- **Cookies** — restricted content: `downterm --cookies=cookies.txt` (or `COOKIES=` in `downterm.conf`)
+- **Audio formats** — option `3` picks `mp3` / `m4a` / `opus` / `wav`; also `--audio-format=flac|aac`
+- **Metadata** — title + thumbnail are embedded by default (`--no-embed` to skip)
+- **Self-update** — `downterm --update` refreshes yt-dlp (pinned + hash-verified) and checks for a newer downterm
+- **Quiet progress bar** — speed + ETA, one line, no spam
+
+### options
+
+| flag | meaning |
+|------|---------|
+| `--version` | print version |
+| `--update` | refresh yt-dlp + check for a newer downterm |
+| `--install` / `--uninstall` | add / remove PATH entry |
+| `--cookies=FILE` | browser cookies for restricted content |
+| `--audio-format=mp3` | default audio container (`mp3` \| `m4a` \| `opus` \| `wav` \| `flac` \| `aac`) |
+| `--no-embed` | skip embedding title + thumbnail |
+
+Or set permanent defaults in **`downterm.conf`** (see `downterm.conf.example`).
 
 ---
 
@@ -127,18 +174,21 @@ download.bat --uninstall
 
 | file | role |
 |------|------|
+| `install.ps1` / `install.sh` | one-line installers (used by the commands at the top) |
 | **`setup.bat`** / **`setup.ps1`** | Windows setup (tools + PATH) |
 | **`setup.sh`** | Linux/macOS setup (tools + PATH) |
 | `downterm.cmd` / `downterm.ps1` | Command entrypoints |
 | `install-path.ps1` | PATH add/remove helper |
 | `download.bat` / `download.sh` | Terminal menu |
-| `filter.ps1` / `filter.sh` | Progress bar + yt-dlp |
+| `filter.ps1` / `filter.sh` | Progress bar + yt-dlp + error codes |
 
 ---
 
 ## releases
 
-- **`3.4.0`** � Linux/macOS now report actionable HTTP, connection, ffmpeg, and deno error codes consistently with Windows
+- **`4.0.0`** — one-line installers; **playlist picker** (option `0`); **cookies** (`--cookies=…`); **audio formats** (`m4a`/`opus`/`wav`); **embed title + thumbnail** by default (`--no-embed`); **self-update** (`--update`, pin-verified yt-dlp + wrapper check); `ERR-14` for missing cookie files
+
+- **`3.4.0`** — Linux/macOS now report actionable HTTP, connection, ffmpeg, and deno error codes consistently with Windows
 
 - **`3.3.0`** — `setup.bat` / `setup.ps1` / `setup.sh`; setup **always** installs PATH; manual PATH still available  
 - **`3.2.0`** — first-run PATH offer; PowerShell entrypoint  
