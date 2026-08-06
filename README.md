@@ -109,12 +109,13 @@ download.bat --uninstall
 
 1. **Copy** a video link in the browser  
 2. Type **`downterm`**  
-3. Press **`1`** for best video  
+3. Press **`1`**  
+4. **Paste** the link (Enter to use the clipboard)
 
 ```
-  1  paste · best video
-  2  paste · pick quality
-  3  paste · audio only
+  1  best video
+  2  pick quality
+  3  audio only
   4  history
   5  open folder
   6  setup tools (+ PATH)

@@ -102,18 +102,33 @@ case "${1:-}" in
 esac
 
 get_clip() {
-  local clip=""
+  local clip="" hint=""
   if command -v wl-paste >/dev/null 2>&1; then clip=$(wl-paste 2>/dev/null | head -1)
   elif command -v xclip >/dev/null 2>&1; then clip=$(xclip -selection clipboard -o 2>/dev/null | head -1)
   elif command -v pbpaste >/dev/null 2>&1; then clip=$(pbpaste 2>/dev/null | head -1)
   fi
   clip=$(printf '%s' "$clip" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   if [[ "$clip" =~ https?://[^[:space:]]+ ]]; then
-    URL="${BASH_REMATCH[0]}"
-    URL="${URL%%[)\].,\"\']}"
-    return 0
+    hint="${BASH_REMATCH[0]}"; hint="${hint%%[)\].,\"\']}"
   fi
-  return 1
+  while :; do
+    printf "\n"
+    if [ -n "$hint" ]; then
+      printf "  ${MUT}link${R}  ${FAINT}[Enter] to use clipboard:${R}\n  ${FAINT}%s${R}\n  ${MUT}>${R} " "$hint"
+      URL="$hint"; read -r URL
+      [ -z "$URL" ] && URL="$hint"
+    else
+      printf "  ${MUT}link${R}  ${FAINT}paste a video link${R}\n  ${MUT}>${R} "
+      read -r URL
+    fi
+    if [ -z "$URL" ]; then
+      printf "  ${BAD}no link — paste a video URL.${R}\n"; read -rn1 -s; continue
+    fi
+    if [[ "$URL" =~ ^https?:// ]]; then
+      printf "  ${MUT}link${R}  ${FAINT}%s${R}\n" "$URL"; return 0
+    fi
+    printf "  ${BAD}not a link — needs http:// or https://${R}\n"; read -rn1 -s
+  done
 }
 
 read_key() {
@@ -236,10 +251,10 @@ menu() {
     clear
     printf "\n  ${ACC}downterm${R}  ${FAINT}4.0.0${R}\n"
     printf "  ${HAIR}..........................................${R}\n\n"
-    printf "  ${MUT}copy a link, then pick a number.${R}\n\n"
-    printf "  ${INK}1${R}  paste · best video\n"
-    printf "  ${INK}2${R}  paste · pick quality\n"
-    printf "  ${INK}3${R}  paste · audio only\n"
+    printf "  ${MUT}pick a number, then paste a link.${R}\n\n"
+    printf "  ${INK}1${R}  best video\n"
+    printf "  ${INK}2${R}  pick quality\n"
+    printf "  ${INK}3${R}  audio only\n"
     printf "  ${INK}4${R}  history\n"
     printf "  ${INK}5${R}  open folder\n"
     printf "  ${INK}6${R}  setup tools\n"

@@ -81,11 +81,11 @@ echo.
 echo   %ACC%downterm%R%  %FAINT%4.0.0%R%
 echo   %HAIR%..........................................%R%
 echo.
-echo   %MUT%copy a link, then pick a number.%R%
+echo   %MUT%pick a number, then paste a link.%R%
 echo.
-echo   %INK%1%R%  %FAINT%paste · best video%R%
-echo   %INK%2%R%  %FAINT%paste · pick quality%R%
-echo   %INK%3%R%  %FAINT%paste · audio only%R%
+echo   %INK%1%R%  %FAINT%best video%R%
+echo   %INK%2%R%  %FAINT%pick quality%R%
+echo   %INK%3%R%  %FAINT%audio only%R%
 echo   %INK%4%R%  %FAINT%history%R%
 echo   %INK%5%R%  %FAINT%open folder%R%
 echo   %INK%6%R%  %FAINT%setup tools%R%
@@ -113,16 +113,34 @@ if "!C!"=="10" goto playlist
 goto menu
 
 :getclip
-set "url="
-for /f "usebackq delims=" %%c in (`powershell -NoProfile -Command "try { $t=(Get-Clipboard -Raw); if ($t -match 'https?://\S+') { $matches[0].TrimEnd([char]41,[char]46,[char]44,[char]34) } } catch { '' }"`) do set "url=%%c"
+set "clip="
+for /f "usebackq delims=" %%c in (`powershell -NoProfile -Command "try { $t=(Get-Clipboard -Raw); if ($t -match 'https?://\S+') { $matches[0].TrimEnd([char]41,[char]46,[char]44,[char]34) } } catch { '' }"`) do set "clip=%%c"
+:getclip_ask
+echo.
+if not "!clip!"=="" (
+  echo   %MUT%link%R%  %FAINT%[Enter] to use clipboard:%R%
+  echo   %FAINT%!clip!%R%
+  set "url=!clip!"
+  set /p "url=  %MUT%>%R% "
+) else (
+  echo   %MUT%link%R%  %FAINT%paste a video link%R%
+  set "url="
+  set /p "url=  %MUT%>%R% "
+)
 if "!url!"=="" (
-  echo.
-  echo   %BAD%no link in clipboard.%R%
-  echo   %FAINT%copy a video link, then try again.%R%
+  echo   %BAD%no link — paste a video URL.%R%
   echo.
   echo   %FAINT%any key...%R%
   pause>nul
-  exit /b 1
+  goto getclip_ask
+)
+echo.!url! | findstr /r /c:"^https\?://" >nul
+if errorlevel 1 (
+  echo   %BAD%not a link — needs http:// or https://%R%
+  echo.
+  echo   %FAINT%any key...%R%
+  pause>nul
+  goto getclip_ask
 )
 echo.
 echo   %MUT%link%R%  %FAINT%!url!%R%
