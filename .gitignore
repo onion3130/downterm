@@ -3,6 +3,7 @@
 .downterm_last.txt
 .downterm_archive.txt
 .downterm_path_ok
+.downterm_playlist
 downterm.conf
 *.part
 *.temp
@@ -22,9 +23,11 @@ desktop.ini
 *.part
 *.temp
 
-# Bundled binaries - shipped in repo + release zips for the Windows full bundle.
-# (Linux/macOS users still fetch via `s`/setup. See bin/checksums.txt for pinned versions.)
-# Binaries are tracked. Nothing to ignore here.
+# Local tool binaries — setup downloads these (yt-dlp ~17MB, ffmpeg ~98MB, deno ~93MB).
+# Not tracked; never commit platform binaries to the repo.
+yt-dlp.exe
+ffmpeg.exe
+deno.exe
 
 # Agent handoff (local only — not for git)
 agent.md

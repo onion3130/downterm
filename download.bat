@@ -3,19 +3,24 @@ setlocal enabledelayedexpansion
 title downterm
 cd /d "%~dp0"
 
-rem downterm 3.4.0 — minimal terminal UI only (no window GUI)
+rem downterm 4.0.0 — minimal terminal UI only (no window GUI)
 rem   downterm            → menu
 rem   downterm --version
 rem   downterm --setup
+rem   downterm --update   → refresh yt-dlp (pinned) + check wrapper updates
 rem   downterm --install  → add this folder to user PATH (type "downterm" anywhere)
+rem   downterm --cookies=file.txt  → authenticate restricted content
+rem   downterm --audio-format=m4a|opus|wav|flac  → preset for audio downloads
+rem   downterm --no-embed  → skip thumbnail/metadata embedding
 
 if /i "%~1"=="--version" (
-  echo downterm 3.4.0
+  echo downterm 4.0.0
   exit /b 0
 )
 if /i "%~1"=="--setup" goto setup
 if /i "%~1"=="--install" goto install_path
 if /i "%~1"=="--uninstall" goto uninstall_path
+if /i "%~1"=="--update" goto update
 
 goto main
 
@@ -41,6 +46,10 @@ set "SUBS=0"
 set "FORCE=0"
 set "SPONSOR=0"
 set "ARG_OUTPUT="
+if not defined COOKIES set "COOKIES="
+if not defined AUDIO set "AUDIO=mp3"
+if not defined EMBED set "EMBED=1"
+set "ITEMS="
 if exist "%~dp0downterm.conf" (
   for /f "usebackq eol=# tokens=1,2 delims==" %%a in ("%~dp0downterm.conf") do (
     if /i "%%a"=="MODE" set "MODE=%%b"
@@ -49,7 +58,18 @@ if exist "%~dp0downterm.conf" (
     if /i "%%a"=="SUBS" set "SUBS=%%b"
     if /i "%%a"=="FORCE" set "FORCE=%%b"
     if /i "%%a"=="SPONSORBLOCK" set "SPONSOR=%%b"
+    if /i "%%a"=="COOKIES" set "COOKIES=%%b"
+    if /i "%%a"=="AUDIO_FORMAT" set "AUDIO=%%b"
+    if /i "%%a"=="EMBED" set "EMBED=%%b"
   )
+)
+
+rem per-run flags override the config (work together with the menu)
+for %%a in (%*) do (
+  if /i "%%~a"=="--no-embed" set "EMBED=0"
+  set "_arg=%%~a"
+  if /i "!_arg:~0,10!"=="--cookies=" set "COOKIES=!_arg:~10!"
+  if /i "!_arg:~0,15!"=="--audio-format=" set "AUDIO=!_arg:~15!"
 )
 
 rem first launch: offer PATH install so "downterm" works in PowerShell/cmd
@@ -58,7 +78,7 @@ if not exist "%~dp0.downterm_path_ok" call :maybe_install_path
 :menu
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%3.4.0%R%
+echo   %ACC%downterm%R%  %FAINT%4.0.0%R%
 echo   %HAIR%..........................................%R%
 echo.
 echo   %MUT%copy a link, then pick a number.%R%
@@ -72,12 +92,13 @@ echo   %INK%6%R%  %FAINT%setup tools%R%
 echo   %INK%7%R%  %FAINT%add to PATH  →  type  downterm  anywhere%R%
 echo   %INK%8%R%  %FAINT%help%R%
 echo   %INK%9%R%  %FAINT%quit%R%
+echo   %INK%0%R%  %FAINT%playlist · pick items%R%
 echo.
 if not exist "%~dp0.downterm_path_ok" (
   echo   %WARN%tip:%R% %FAINT%press 7 once so PowerShell finds "downterm"%R%
   echo.
 )
-choice /c 123456789 /n /m "  %MUT%>%R% "
+choice /c 1234567890 /n /m "  %MUT%>%R% "
 set "C=!errorlevel!"
 if "!C!"=="1" goto quick_video
 if "!C!"=="2" goto pick_video
@@ -88,6 +109,7 @@ if "!C!"=="6" goto setup
 if "!C!"=="7" goto install_path
 if "!C!"=="8" goto help
 if "!C!"=="9" exit /b 0
+if "!C!"=="10" goto playlist
 goto menu
 
 :getclip
@@ -114,6 +136,7 @@ set "QUALITY=best"
 set "SUBS=0"
 set "FORCE=0"
 set "SPONSOR=0"
+set "ITEMS="
 goto rundl
 
 :quick_audio
@@ -124,6 +147,23 @@ set "QUALITY=best"
 set "SUBS=0"
 set "FORCE=0"
 set "SPONSOR=0"
+set "ITEMS="
+cls
+echo.
+echo   %ACC%audio format%R%
+echo   %HAIR%..........................................%R%
+echo.
+echo   %INK%1%R%  mp3
+echo   %INK%2%R%  m4a
+echo   %INK%3%R%  opus
+echo   %INK%4%R%  wav
+echo.
+choice /c 1234 /n /m "  %MUT%>%R% "
+set "AF=!errorlevel!"
+if "!AF!"=="1" set "AUDIO=mp3"
+if "!AF!"=="2" set "AUDIO=m4a"
+if "!AF!"=="3" set "AUDIO=opus"
+if "!AF!"=="4" set "AUDIO=wav"
 goto rundl
 
 :pick_video
@@ -155,6 +195,7 @@ set "MODE=video"
 set "SUBS=0"
 set "FORCE=0"
 set "SPONSOR=0"
+set "ITEMS="
 echo.
 echo   %FAINT%extras%R%
 echo   %INK%1%R%  download now
@@ -189,7 +230,7 @@ if not exist "yt-dlp.exe" (
 )
 set "FFARG="
 if exist "ffmpeg.exe" set "FFARG=.\ffmpeg.exe"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "!url!" "%FFARG%" "!MODE!" "!QUALITY!" "!ARG_OUTPUT!" "!SUBS!" "!FORCE!" "!SPONSOR!"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "!url!" "%FFARG%" "!MODE!" "!QUALITY!" "!ARG_OUTPUT!" "!SUBS!" "!FORCE!" "!SPONSOR!" "!COOKIES!" "!AUDIO!" "!ITEMS!" "!EMBED!"
 set "ec=!errorlevel!"
 echo.
 echo   %HAIR%------------------------------------------%R%
@@ -246,6 +287,80 @@ set "QUALITY=best"
 set "SUBS=0"
 set "FORCE=0"
 set "SPONSOR=0"
+set "ITEMS="
+goto rundl
+
+:playlist
+call :getclip
+if errorlevel 1 goto menu
+if not exist "yt-dlp.exe" (
+  echo.
+  echo   %BAD%yt-dlp.exe missing — press 6 for setup%R%
+  pause>nul
+  goto menu
+)
+cls
+echo.
+echo   %ACC%playlist%R%
+echo   %HAIR%..........................................%R%
+echo.
+set "PLF=%~dp0.downterm_playlist"
+del /q "%PLF%" 2>nul
+echo   %FAINT%scanning playlist ...%R%
+yt-dlp.exe --flat-playlist --print "%%(id)s^|%%(title)s" --no-warnings "!url!" > "%PLF%" 2>nul
+set "PLN=0"
+for /f "usebackq delims=" %%z in ("%PLF%") do (
+  set /a PLN+=1
+  set "P!PLN!=%%z"
+)
+if !PLN! lss 1 (
+  echo.
+  echo   %BAD%no items found — not a playlist?%R%
+  pause>nul
+  goto menu
+)
+set "PLMAX=!PLN!"
+if !PLMAX! gtr 25 set "PLMAX=25"
+cls
+echo.
+echo   %ACC%playlist%R%
+echo   %HAIR%..........................................%R%
+echo.
+set "N=0"
+for /l %%i in (1,1,!PLMAX!) do (
+  set /a N+=1
+  call set "PLINE=%%P%%i%%"
+  for /f "tokens=1,* delims=|" %%a in ("!PLINE!") do set "PTITLE=%%b"
+  echo   %INK%!N!%R%  !PTITLE!
+)
+echo.
+echo   pick:  all   or   1-3   or   2,5,7
+echo.
+set "ITEMS="
+set /p "SEL=  %MUT%>%R% "
+set "ITEMS=!SEL!"
+echo.!ITEMS! | findstr /r "^[0-9,-]*$" >nul && set "SEL_OK=1"
+if "!SEL_OK!"=="1" goto :playlist_ok
+if /i "!ITEMS!"=="all" goto :playlist_ok
+if "!ITEMS!"=="" goto :playlist_ok
+echo   %BAD%invalid — use  all  or 1-3  or 2,5,7%R%
+pause>nul
+goto menu
+
+:playlist_ok
+if /i "!ITEMS!"=="all" set "ITEMS="
+set "MODE=video"
+set "QUALITY=best"
+set "SUBS=0"
+set "FORCE=0"
+set "SPONSOR=0"
+echo.
+echo   %INK%1%R%  download
+echo   %INK%2%R%  audio only
+echo.
+choice /c 12 /n /m "  %MUT%>%R% "
+set "PM=!errorlevel!"
+if "!PM!"=="2" set "MODE=audio"
 goto rundl
 
 :openfolder
@@ -255,7 +370,7 @@ goto menu
 :maybe_install_path
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%3.4.0%R%
+echo   %ACC%downterm%R%  %FAINT%4.0.0%R%
 echo   %HAIR%..........................................%R%
 echo.
 echo   %MUT%make typing%R%  %INK%downterm%R%  %MUT%work in PowerShell / cmd?%R%
@@ -316,7 +431,7 @@ exit /b 0
 :help
 cls
 echo.
-echo   %ACC%help%R%  %FAINT%3.4.0%R%
+echo   %ACC%help%R%  %FAINT%4.0.0%R%
 echo   %HAIR%..........................................%R%
 echo.
 echo   %MUT%terminal only — number menu, no window app%R%
@@ -338,6 +453,72 @@ echo   %MUT%keys%R%
 echo     1 best video   2 quality   3 audio
 echo     4 history      5 folder    6 setup
 echo     7 add to PATH  8 help      9 quit
+echo     0 playlist     pick items
+echo.
+echo   %MUT%new in 4.0%R%
+echo     audio: mp3 /m4a/opus/wav  ^(--audio-format=^)
+echo     cookies:  download.bat --cookies=file.txt
+echo     metadata: embedded by default ^(--no-embed to skip^)
+echo     update:   download.bat --update
+echo.
+echo   %FAINT%any key...%R%
+pause>nul
+goto menu
+
+:update
+cls
+echo.
+echo   %ACC%update%R%
+echo   %HAIR%..........................................%R%
+echo.
+if exist "yt-dlp.exe" (
+  echo   %FAINT%refreshing yt-dlp to the pinned version ...%R%
+) else (
+  echo   %FAINT%fetching yt-dlp ...%R%
+)
+set "PIN_URL="
+set "PIN_HASH="
+if exist "bin\checksums.txt" (
+  for /f "tokens=1,2,3,4" %%a in ('type bin\checksums.txt ^| findstr /b /i "yt-dlp_windows "') do (
+    set "PIN_HASH=%%c"
+    set "PIN_URL=%%d"
+  )
+)
+if not defined PIN_URL (
+  echo   %BAD%no yt-dlp pin found — pull release archive or run setup%R%
+  pause>nul
+  goto menu
+)
+curl.exe -L --max-time 300 -o "yt-dlp.exe.tmp" "!PIN_URL!" 2>nul
+if not exist "yt-dlp.exe.tmp" (
+  echo   %BAD%download failed%R%
+  pause>nul
+  goto menu
+)
+set "ACTUAL="
+for /f "skip=1 tokens=* delims=" %%i in ('certutil -hashfile "yt-dlp.exe.tmp" SHA256') do (
+  if not defined ACTUAL set "ACTUAL=%%i"
+)
+set "ACTUAL=!ACTUAL: =!"
+set "ACTUAL=!ACTUAL:~0,64!"
+if /i not "!ACTUAL!"=="!PIN_HASH!" (
+  del /q "yt-dlp.exe.tmp" 2>nul
+  echo   %BAD%checksum mismatch — not replaced%R%
+  pause>nul
+  goto menu
+)
+move /y "yt-dlp.exe.tmp" "yt-dlp.exe" >nul
+echo   %GOOD%yt-dlp refreshed.%R%
+echo.
+echo   %FAINT%checking for a newer downterm wrapper ...%R%
+set "LATEST="
+for /f "usebackq delims=" %%l in (`powershell -NoProfile -Command "try { (Invoke-RestMethod 'https://api.github.com/repos/onion3130/downterm/releases/latest').tag_name } catch { '' }"`) do set "LATEST=%%l"
+if not "!LATEST!"=="4.0.0" (
+  echo   %WARN%a newer release is available: %R%  %INK%!LATEST!%R%
+  echo   %FAINT%run the installer again or grab it at the releases page.%R%
+) else (
+  echo   %GOOD%downterm scripts are up to date ^(4.0.0^).%R%
+)
 echo.
 echo   %FAINT%any key...%R%
 pause>nul

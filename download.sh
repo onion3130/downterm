@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
-# downterm 3.4.0 — minimal terminal UI (numbers only). no window GUI.
+# downterm 4.0.0 — minimal terminal UI (numbers only). no window GUI.
+#   downterm              → menu
+#   downterm --version
+#   downterm --update     → refresh yt-dlp (pinned) + check wrapper updates
+#   downterm --install    → link ~/.local/bin/downterm (PATH)
+#   downterm --cookies=FILE  → authenticate restricted content
+#   downterm --audio-format=mp3|m4a|opus|wav  → preset for audio downloads
+#   downterm --no-embed   → skip thumbnail/metadata embedding
 set -u
 ESC="\033"
 R="${ESC}[0m"
@@ -21,6 +28,29 @@ SUBS=0
 FORCE=0
 SPONSOR=0
 OUT=""
+COOKIES=""
+AUDIO=mp3
+ITEMS=""
+EMBED=1
+
+# optional local defaults (downterm.conf, gitignored)
+if [ -f "$SCRIPT_DIR/downterm.conf" ]; then
+  while IFS='=' read -r k v; do
+    k="$(printf '%s' "$k" | tr -d '[:space:]')"
+    v="$(printf '%s' "$v" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+    case "$k" in
+      MODE)        MODE="$v" ;;
+      QUALITY)     QUALITY="$v" ;;
+      OUTPUT)      OUT="$v" ;;
+      SUBS)        SUBS="$v" ;;
+      FORCE)       FORCE="$v" ;;
+      SPONSORBLOCK) SPONSOR="$v" ;;
+      COOKIES)     COOKIES="$v" ;;
+      AUDIO_FORMAT) AUDIO="$v" ;;
+      EMBED)       EMBED="$v" ;;
+    esac
+  done < "$SCRIPT_DIR/downterm.conf"
+fi
 
 YTDLP=""
 if command -v yt-dlp >/dev/null 2>&1; then YTDLP="yt-dlp"
@@ -29,8 +59,16 @@ FFARG=""
 if command -v ffmpeg >/dev/null 2>&1; then FFARG="$(command -v ffmpeg)"
 elif [ -x "$SCRIPT_DIR/ffmpeg" ]; then FFARG="$SCRIPT_DIR/ffmpeg"; fi
 
+for _a in "$@"; do
+  case "$_a" in
+    --cookies=*)      COOKIES="${_a#--cookies=}" ;;
+    --audio-format=*) AUDIO="${_a#--audio-format=}" ;;
+    --no-embed)       EMBED=0 ;;
+  esac
+done
+
 case "${1:-}" in
-  --version) echo "downterm 3.4.0"; exit 0 ;;
+  --version) echo "downterm 4.0.0"; exit 0 ;;
   --install)
     mkdir -p "$HOME/.local/bin"
     ln -sfn "$SCRIPT_DIR/download.sh" "$HOME/.local/bin/downterm"
@@ -46,6 +84,18 @@ case "${1:-}" in
   --uninstall)
     rm -f "$HOME/.local/bin/downterm"
     printf "  removed ~/.local/bin/downterm\n"
+    exit 0
+    ;;
+  --update)
+    printf "  refreshing tools (yt-dlp / deno) to pinned versions ...\n"
+    bash "$SCRIPT_DIR/setup.sh" --force-tools 2>/dev/null || true
+    lt=$(curl -fsSL --max-time 15 "https://api.github.com/repos/onion3130/downterm/releases/latest" 2>/dev/null | grep '"tag_name"' | head -1 | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
+    if [ -n "$lt" ] && [ "$lt" != "4.0.0" ]; then
+      printf "\n  a newer downterm is available: %s\n" "$lt"
+      printf "  grab it: https://github.com/onion3130/downterm/releases/latest\n"
+    else
+      printf "\n  downterm scripts are up to date (4.0.0). tools refreshed.\n"
+    fi
     exit 0
     ;;
   --setup) ;; # fall through to menu setup
@@ -72,17 +122,25 @@ read_key() {
   else read -r k; printf '%s' "${k:0:1}"; fi
 }
 
+available_yt() {
+  if [ -n "$YTDLP" ]; then printf '%s' "$YTDLP"
+  elif [ -x "$SCRIPT_DIR/yt-dlp" ]; then printf '%s' "$SCRIPT_DIR/yt-dlp"
+  elif command -v yt-dlp >/dev/null 2>&1; then printf 'yt-dlp'
+  fi
+}
+
 run_dl() {
   clear
   printf "\n  ${ACC}downterm${R}\n  ${HAIR}..........................................${R}\n\n"
   printf "  ${MUT}downloading${R}\n  ${FAINT}%s${R}\n\n" "$URL"
+  if [ -n "$ITEMS" ]; then printf "  ${FAINT}playlist items: ${INK}%s${R}\n\n" "$ITEMS"; fi
   printf "  ${HAIR}------------------------------------------${R}\n\n"
-  if [ -z "$YTDLP" ]; then
+  if [ -z "$YTDLP" ] && [ ! -x "$SCRIPT_DIR/yt-dlp" ] && ! command -v yt-dlp >/dev/null 2>&1; then
     printf "  ${BAD}yt-dlp missing — setup first${R}\n"; read -rn1 -s; return
   fi
   printf '%s\n' "$URL" > "$LAST_FILE"
   printf '%s\n' "$URL" >> "$HISTORY_FILE"
-  bash "$SCRIPT_DIR/filter.sh" "$URL" "$FFARG" "$YTDLP" "$MODE" "$QUALITY" "$OUT" "$SUBS" "$FORCE" "$SPONSOR"
+  bash "$SCRIPT_DIR/filter.sh" "$URL" "$FFARG" "$YTDLP" "$MODE" "$QUALITY" "$OUT" "$SUBS" "$FORCE" "$SPONSOR" "$COOKIES" "$AUDIO" "$ITEMS" "$EMBED"
   local ec=$?
   printf "\n  ${HAIR}------------------------------------------${R}\n"
   if [ $ec -eq 0 ]; then printf "  ${GOOD}saved.${R}\n"; else printf "  ${WARN}not saved cleanly.${R}\n"; fi
@@ -92,16 +150,69 @@ run_dl() {
 pick_quality() {
   clear
   printf "\n  ${ACC}quality${R}\n\n"
-  printf "  ${INK}1${R} best  ${INK}2${R} 1080  ${INK}3${R} 720  ${INK}4${R} 480  ${INK}5${R} 1440  ${INK}6${R} 4K  ${INK}7${R} back\n\n  ${MUT}>${R} "
+  printf "  ${INK}1${R} best  ${INK}2${R} 2160  ${INK}3${R} 1080  ${INK}4${R} 720  ${INK}5${R} 480  ${INK}6${R} 1440  ${INK}7${R} back\n\n  ${MUT}>${R} "
   local q; q=$(read_key); echo
   case "$q" in
-    1) QUALITY=best ;; 2) QUALITY=1080 ;; 3) QUALITY=720 ;; 4) QUALITY=480 ;;
-    5) QUALITY=1440 ;; 6) QUALITY=2160 ;; *) return 1 ;;
+    1) QUALITY=best ;; 2) QUALITY=2160 ;; 3) QUALITY=1080 ;; 4) QUALITY=720 ;;
+    5) QUALITY=480 ;; 6) QUALITY=1440 ;; *) return 1 ;;
   esac
   printf "\n  ${INK}1${R} now  ${INK}2${R} +subs  ${INK}3${R} +sponsor  ${INK}4${R} both\n\n  ${MUT}>${R} "
   local e; e=$(read_key); echo
   SUBS=0; SPONSOR=0
   case "$e" in 2) SUBS=1 ;; 3) SPONSOR=1 ;; 4) SUBS=1; SPONSOR=1 ;; esac
+  return 0
+}
+
+pick_audio() {
+  clear
+  printf "\n  ${ACC}audio format${R}\n\n"
+  printf "  ${INK}1${R} mp3  ${INK}2${R} m4a  ${INK}3${R} opus  ${INK}4${R} wav\n\n  ${MUT}>${R} "
+  local a; a=$(read_key); echo
+  case "$a" in 2) AUDIO=m4a ;; 3) AUDIO=opus ;; 4) AUDIO=wav ;; *) AUDIO=mp3 ;; esac
+}
+
+playlist_pick() {
+  clear
+  printf "\n  ${ACC}playlist${R}\n  ${HAIR}..........................................${R}\n\n"
+  local yt; yt=$(available_yt)
+  if [ -z "$yt" ]; then
+    printf "  ${BAD}yt-dlp missing — setup first${R}\n"; read -rn1 -s; return 1
+  fi
+  if ! get_clip; then
+    printf "  ${BAD}no link in clipboard.${R}\n"; read -rn1 -s; return 1
+  fi
+  printf "  ${MUT}link${R}  ${FAINT}%s${R}\n" "$URL"
+  local plist="$SCRIPT_DIR/.downterm_playlist"
+  printf "  ${MUT}scanning playlist ...${R}\n"
+  "$yt" --flat-playlist --print '%(id)s|%(title)s' --no-warnings "$URL" > "$plist" 2>/dev/null || true
+  local i=0 row
+  local rows=()
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    rows[$i]=$line; i=$((i+1))
+    [ $i -ge 25 ] && break
+  done < "$plist"
+  if [ ${#rows[@]} -eq 0 ]; then
+    printf "  ${BAD}no items found — not a playlist?${R}\n"; read -rn1 -s; return 1
+  fi
+  clear
+  printf "\n  ${ACC}playlist${R}\n\n"
+  local n=0
+  for row in "${rows[@]:-}"; do
+    n=$((n+1))
+    printf "  ${INK}%2d${R}  %s\n" "$n" "${row#*|}"
+  done
+  printf "\n  pick:  all  |  1-3  |  2,5,7   (Enter)\n  ${MUT}>${R} "
+  local sel; read -r sel
+  case "$sel" in
+    *all*|'') ITEMS= ;;
+    *) ITEMS="$(printf '%s' "$sel" | tr -d '[:space:]')" ;;
+  esac
+  if [ -n "$ITEMS" ]; then printf "  ${FAINT}items: %s${R}\n" "$ITEMS"; fi
+  MODE=video; QUALITY=best; SUBS=0; SPONSOR=0; FORCE=0
+  printf "\n${INK}1${R} download  ${INK}2${R} audio\n  ${MUT}>${R} "
+  local pb; pb=$(read_key); echo
+  if [ "$pb" = "2" ]; then MODE=audio; fi
   return 0
 }
 
@@ -123,7 +234,7 @@ install_path() {
 menu() {
   while true; do
     clear
-    printf "\n  ${ACC}downterm${R}  ${FAINT}3.4.0${R}\n"
+    printf "\n  ${ACC}downterm${R}  ${FAINT}4.0.0${R}\n"
     printf "  ${HAIR}..........................................${R}\n\n"
     printf "  ${MUT}copy a link, then pick a number.${R}\n\n"
     printf "  ${INK}1${R}  paste · best video\n"
@@ -134,14 +245,15 @@ menu() {
     printf "  ${INK}6${R}  setup tools\n"
     printf "  ${INK}7${R}  add to PATH  →  type  downterm  anywhere\n"
     printf "  ${INK}8${R}  help\n"
-    printf "  ${INK}9${R}  quit\n\n  ${MUT}>${R} "
+    printf "  ${INK}9${R}  quit\n"
+    printf "  ${INK}0${R}  playlist · pick items\n\n  ${MUT}>${R} "
     local c; c=$(read_key); echo
     case "$c" in
-      1) if get_clip; then MODE=video; QUALITY=best; SUBS=0; SPONSOR=0; FORCE=0; run_dl
+      1) if get_clip; then MODE=video; QUALITY=best; SUBS=0; SPONSOR=0; FORCE=0; ITEMS=; run_dl
          else printf "\n  ${BAD}no link in clipboard.${R}\n"; read -rn1 -s; fi ;;
-      2) if get_clip; then MODE=video; FORCE=0; pick_quality && run_dl
+      2) if get_clip; then MODE=video; FORCE=0; ITEMS=; pick_quality && run_dl
          else printf "\n  ${BAD}no link in clipboard.${R}\n"; read -rn1 -s; fi ;;
-      3) if get_clip; then MODE=audio; QUALITY=best; SUBS=0; SPONSOR=0; FORCE=0; run_dl
+      3) if get_clip; then MODE=audio; QUALITY=best; SUBS=0; SPONSOR=0; FORCE=0; ITEMS=; pick_audio && run_dl
          else printf "\n  ${BAD}no link in clipboard.${R}\n"; read -rn1 -s; fi ;;
       4)
         clear; printf "\n  ${ACC}history${R}\n\n"
@@ -152,7 +264,7 @@ menu() {
         local h; h=$(read_key); echo
         [[ "$h" =~ ^[1-9]$ ]] || continue
         local idx=$((h-1)); [ "$idx" -lt "${#lines[@]}" ] || continue
-        URL="${lines[$idx]}"; MODE=video; QUALITY=best; SUBS=0; SPONSOR=0; FORCE=0; run_dl
+        URL="${lines[$idx]}"; MODE=video; QUALITY=best; SUBS=0; SPONSOR=0; FORCE=0; ITEMS=; run_dl
         ;;
       5) command -v xdg-open >/dev/null 2>&1 && xdg-open "$SCRIPT_DIR" >/dev/null 2>&1 &
          command -v open >/dev/null 2>&1 && open "$SCRIPT_DIR" >/dev/null 2>&1 &
@@ -179,10 +291,16 @@ menu() {
       7) install_path ;;
       8)
         clear
-        printf "\n  ${ACC}help${R}  ${FAINT}3.4.0${R}\n\n"
+        printf "\n  ${ACC}help${R}  ${FAINT}4.0.0${R}\n\n"
         printf "  Copy a link → press 1 for best video.\n"
         printf "  Press 7 once (or: ./download.sh --install)\n"
         printf "  Open a NEW shell → type:  downterm\n\n"
+        printf "  ${ACC}new in 4.0${R}\n"
+        printf "   0  playlist      pick which items\n"
+        printf "   3  audio mp3     use --audio-format=m4a|opus|wav\n"
+        printf "   cookies          downterm --cookies=file.txt\n"
+        printf "   metadata         embedded by default (--no-embed to skip)\n"
+        printf "   update           ./download.sh --update\n\n"
         printf "  ${FAINT}any key...${R}\n"; read -rn1 -s
         ;;
       9|q|Q) exit 0 ;;

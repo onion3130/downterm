@@ -6,7 +6,11 @@ param(
   [string]$output = "",
   [string]$subs = "0",
   [string]$force = "0",
-  [string]$sponsor = "0"
+  [string]$sponsor = "0",
+  [string]$cookies = "",
+  [string]$audio = "mp3",
+  [string]$items = "",
+  [string]$embed = "1"
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -15,6 +19,16 @@ if ($url -notmatch '^https?://') {
   [Console]::Error.WriteLine("  ERR-13 - invalid URL  *  must start with http:// or https://")
   exit 13
 }
+
+if ($cookies -and -not (Test-Path -LiteralPath $cookies)) {
+  [Console]::Error.WriteLine("")
+  [Console]::Error.WriteLine("  ERR-14 - cookies file not found  *  pass a real path or remove COOKIES from downterm.conf")
+  [Console]::Error.WriteLine("  $cookies")
+  exit 14
+}
+
+$enEmbed = ($embed -eq "1" -or $embed -eq "yes" -or $embed -eq "true")
+if ($audio -in @("mp3","m4a","opus","wav","flac","aac")) { $enAudio = $audio } else { $enAudio = "mp3" }
 
 $warnNoFf = (-not $ff) -and (-not (Test-Path '.\ffmpeg.exe')) -and (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue))
 if ($warnNoFf -and ($mode -ne "audio")) {
@@ -33,7 +47,7 @@ if ($mode -eq "audio") {
   $aq = '0'
   if ($quality -eq "medium") { $aq = '5' }
   elseif ($quality -eq "low") { $aq = '9' }
-  $ytargs = @('-x','--audio-format','mp3','--audio-quality',$aq,'-o',$outTpl,'--newline','--no-playlist')
+  $ytargs = @('-x','--audio-format',$enAudio,'--audio-quality',$aq,'-o',$outTpl,'--newline','--no-playlist')
 } else {
   $format = switch ($quality) {
     "2160" { 'bv*[ext=mp4][height<=2160]+ba[ext=m4a]/b[ext=mp4]/b' }
@@ -50,6 +64,8 @@ if ($mode -eq "audio") {
 if ($ff) { $ytargs += @('--ffmpeg-location',$ff) }
 if (Test-Path '.\deno.exe') { $ytargs += @('--js-runtimes','deno:.\deno.exe') }
 
+if ($cookies) { $ytargs += @('--cookies',$cookies) }
+
 if ($mode -ne "audio" -and ($subs -eq "1" -or $subs -eq "yes" -or $subs -eq "true")) {
   $ytargs += @('--write-auto-subs','--write-subs','--sub-langs','en.*,en','--embed-subs','--convert-subs','srt')
 }
@@ -63,6 +79,10 @@ if ($force -eq "1" -or $force -eq "yes" -or $force -eq "true") {
 if ($mode -ne "audio" -and ($sponsor -eq "1" -or $sponsor -eq "yes" -or $sponsor -eq "true")) {
   $ytargs += @('--sponsorblock-remove','sponsor,selfpromo,interaction,intro,outro,preview')
 }
+
+if ($items) { $ytargs += @('--playlist-items',$items) }
+
+if ($enEmbed) { $ytargs += @('--embed-thumbnail','--embed-metadata') }
 
 $ytargs += $url
 

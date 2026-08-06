@@ -1,9 +1,13 @@
-# downterm config (copy to downterm.conf — gitignored)
-# Flags override these; interactive prompts still ask unless you pass a URL with flags.
+# downterm config — copy this file to "downterm.conf" (same folder, gitignored)
+# Flags on the command line override these values.
 
-# MODE=video
-# QUALITY=best
-# OUTPUT=./downloads
-# SUBS=0
-# FORCE=0
-# SPONSORBLOCK=0
+# MODE=video            # video | audio
+# QUALITY=best          # best | 1080 | 720 | 480 | 1440 | 2160   (video)
+#                       # best | medium | low                       (audio)
+# OUTPUT=./downloads    # folder where files land (default: this folder)
+# SUBS=0                # 1 = embed english subtitles (video)
+# FORCE=0               # 1 = overwrite existing files
+# SPONSORBLOCK=0        # 1 = cut sponsor/intro/outro segments (video)
+# COOKIES=cookies.txt   # optional browser cookie file for restricted content
+# AUDIO_FORMAT=mp3      # mp3 | m4a | opus | wav | flac | aac
+# EMBED=1           # 1 = embed title + thumbnail into saved files

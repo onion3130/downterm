@@ -11,6 +11,10 @@ output="${6:-}"
 subs="${7:-0}"
 force="${8:-0}"
 sponsor="${9:-0}"
+cookies="${10:-}"
+audio="${11:-mp3}"
+items="${12:-}"
+embed="${13:-1}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || echo .)"
 
@@ -18,6 +22,14 @@ if [[ ! "$url" =~ ^https?:// ]]; then
   printf "\n  ERR-13 - invalid URL  *  must start with http:// or https://\n" >&2
   exit 13
 fi
+
+if [ -n "$cookies" ] && [ ! -f "$cookies" ]; then
+  printf "\n  ERR-14 - cookies file not found  *  pass a real path or remove COOKIES from downterm.conf\n" >&2
+  printf "  %s\n" "$cookies" >&2
+  exit 14
+fi
+
+case "$audio" in mp3|m4a|opus|wav|flac|aac) ;; *) audio=mp3 ;; esac
 
 outTpl='%(title).200B [%(id)s].%(ext)s'
 if [ -n "$output" ]; then
@@ -31,7 +43,7 @@ if [ "$mode" = "audio" ]; then
     medium) aq='5' ;;
     low)    aq='9' ;;
   esac
-  args=(-x --audio-format mp3 --audio-quality "$aq" -o "$outTpl" --newline --no-playlist)
+  args=(-x --audio-format "$audio" --audio-quality "$aq" -o "$outTpl" --newline --no-playlist)
 else
   case "$quality" in
     2160) format='bv*[ext=mp4][height<=2160]+ba[ext=m4a]/b[ext=mp4]/b' ;;
@@ -59,6 +71,10 @@ elif command -v deno >/dev/null 2>&1; then
   args+=(--js-runtimes "deno:deno")
 fi
 
+if [ -n "$cookies" ]; then
+  args+=(--cookies "$cookies")
+fi
+
 if [ "$mode" != "audio" ] && { [ "$subs" = "1" ] || [ "$subs" = "yes" ] || [ "$subs" = "true" ]; }; then
   args+=(--write-auto-subs --write-subs --sub-langs "en.*,en" --embed-subs --convert-subs srt)
 fi
@@ -71,6 +87,14 @@ fi
 
 if [ "$mode" != "audio" ] && { [ "$sponsor" = "1" ] || [ "$sponsor" = "yes" ] || [ "$sponsor" = "true" ]; }; then
   args+=(--sponsorblock-remove "sponsor,selfpromo,interaction,intro,outro,preview")
+fi
+
+if [ -n "$items" ]; then
+  args+=(--playlist-items "$items")
+fi
+
+if [ "$embed" = "1" ] || [ "$embed" = "yes" ] || [ "$embed" = "true" ]; then
+  args+=(--embed-thumbnail --embed-metadata)
 fi
 
 args+=("$url")
