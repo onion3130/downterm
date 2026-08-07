@@ -19,6 +19,16 @@ Minimal terminal UI. No window app. No Electron. Nothing to configure.
 | **Windows** (PowerShell) | `irm https://raw.githubusercontent.com/onion3130/downterm/main/install.ps1 \| iex` |
 | **Linux / macOS** | `curl -fsSL https://raw.githubusercontent.com/onion3130/downterm/main/install.sh \| bash` |
 
+```
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/onion3130/downterm/main/install.ps1 | iex
+```
+
+```
+# Linux / macOS
+curl -fsSL https://raw.githubusercontent.com/onion3130/downterm/main/install.sh | bash
+```
+
 The installer pulls the latest release, fetches verified `yt-dlp`/`ffmpeg`/`deno`
 (a SHA-256-checked setup), and puts `downterm` on PATH. Open a **new** terminal and type `downterm`.
 
