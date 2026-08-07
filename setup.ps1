@@ -51,6 +51,13 @@ if (-not $PathOnly) {
     (Get-FileHash -Algorithm SHA256 -Path $path).Hash.ToLowerInvariant()
   }
 
+  $isArm64 = $false
+  $procArch = $env:PROCESSOR_ARCHITECTURE
+  if ($procArch -and $procArch -match 'ARM64|arm64') { $isArm64 = $true }
+  $ytDlpKey   = if ($isArm64) { 'yt-dlp_windows_arm64' } else { 'yt-dlp_windows' }
+  $denoKey    = if ($isArm64) { 'deno_windows_arm64' } else { 'deno_windows' }
+  $ytDlpAsset = if ($isArm64) { 'yt-dlp_arm64.exe' } else { 'yt-dlp.exe' }
+
   function Get-FileVerified($destName, $pin, $isZip, $extractScript) {
     $dest = Join-Path $Root $destName
     if ((Test-Path $dest) -and -not $ForceTools) {
@@ -90,7 +97,7 @@ if (-not $PathOnly) {
   if (-not (Get-Command curl.exe -ErrorAction SilentlyContinue)) {
     Write-Bad "curl.exe not found (needed for setup). Install Windows curl or use a full release zip."
   } else {
-    Get-FileVerified 'yt-dlp.exe' (Get-Pin 'yt-dlp_windows') $false $null
+    Get-FileVerified $ytDlpAsset (Get-Pin $ytDlpKey) $false $null
 
     Get-FileVerified 'ffmpeg.exe' (Get-Pin 'ffmpeg_windows') $true {
       param($zip)
@@ -104,7 +111,7 @@ if (-not $PathOnly) {
       } finally { $z.Dispose() }
     }
 
-    Get-FileVerified 'deno.exe' (Get-Pin 'deno_windows') $true {
+    Get-FileVerified 'deno.exe' (Get-Pin $denoKey) $true {
       param($zip)
       Add-Type -AssemblyName System.IO.Compression.FileSystem
       $z = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $zip).Path)

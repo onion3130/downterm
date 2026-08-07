@@ -10,7 +10,9 @@ param(
   [string]$cookies = "",
   [string]$audio = "mp3",
   [string]$items = "",
-  [string]$embed = "1"
+  [string]$embed = "1",
+  [string]$yt_args = "",
+  [string]$sub_langs = "en.*,en"
 )
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -67,7 +69,7 @@ if (Test-Path '.\deno.exe') { $ytargs += @('--js-runtimes','deno:.\deno.exe') }
 if ($cookies) { $ytargs += @('--cookies',$cookies) }
 
 if ($mode -ne "audio" -and ($subs -eq "1" -or $subs -eq "yes" -or $subs -eq "true")) {
-  $ytargs += @('--write-auto-subs','--write-subs','--sub-langs','en.*,en','--embed-subs','--convert-subs','srt')
+  $ytargs += @('--write-auto-subs','--write-subs','--sub-langs',$sub_langs,'--embed-subs','--convert-subs','srt')
 }
 
 if ($force -eq "1" -or $force -eq "yes" -or $force -eq "true") {
@@ -83,6 +85,12 @@ if ($mode -ne "audio" -and ($sponsor -eq "1" -or $sponsor -eq "yes" -or $sponsor
 if ($items) { $ytargs += @('--playlist-items',$items) }
 
 if ($enEmbed) { $ytargs += @('--embed-thumbnail','--embed-metadata') }
+
+if ($yt_args) {
+  foreach ($tok in ($yt_args -split '\s+')) {
+    if ($tok) { $ytargs += $tok }
+  }
+}
 
 $ytargs += $url
 

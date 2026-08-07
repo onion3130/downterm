@@ -48,8 +48,9 @@ if [ "$PATH_ONLY" -eq 0 ]; then
   plat=yt-dlp_linux
   denoplat=deno_linux
   case "$(uname -s)-$(uname -m)" in
+    Darwin-arm64|Darwin-aarch64) plat=yt-dlp_macos; denoplat=deno_macos_aarch64 ;;
     Darwin-*) plat=yt-dlp_macos; denoplat=deno_macos ;;
-    Linux-aarch64|Linux-arm64) plat=yt-dlp_linux_aarch64; denoplat=deno_linux ;;
+    Linux-aarch64|Linux-arm64) plat=yt-dlp_linux_aarch64; denoplat=deno_linux_aarch64 ;;
     Linux-x86_64|Linux-amd64) plat=yt-dlp_linux; denoplat=deno_linux ;;
   esac
 

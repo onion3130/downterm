@@ -8,7 +8,7 @@ Minimal terminal UI. No window app. No Electron. Nothing to configure.
 [![self-test](https://github.com/onion3130/downterm/actions/workflows/test.yml/badge.svg)](https://github.com/onion3130/downterm/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Current:** `4.1.0`
+**Current:** `5.0.0`
 
 ---
 
@@ -177,7 +177,7 @@ Or set permanent defaults in **`downterm.conf`** (see `downterm.conf.example`).
 
 ## releases
 
-- **`4.1.0`** — **real self-update** (downloads + replaces wrappers, not just a message); **paste-prompt** for links with clipboard as Enter-default; **`NO_COLOR` / `TERM=dumb` / piped** output support; non-interactive `--setup` (CI-safe); CI timeout guards
+- **`5.0.0`** — **real self-update** (downloads + replaces wrappers, not just a message); **paste-prompt** for links with clipboard as Enter-default; **`NO_COLOR` / `TERM=dumb` / piped** output support; non-interactive `--setup` (CI-safe); CI timeout guards
 
 - **`4.0.0`** — one-line installers; **playlist picker** (option `0`); **cookies** (`--cookies=…`); **audio formats** (`m4a`/`opus`/`wav`); **embed title + thumbnail** by default (`--no-embed`); **self-update check** (`--update`, pin-verified yt-dlp); `ERR-14` for missing cookie files
 

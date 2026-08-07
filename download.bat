@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 title downterm
 cd /d "%~dp0"
 
-rem downterm 4.1.0 — minimal terminal UI only (no window GUI)
+rem downterm 5.0.0 — minimal terminal UI only (no window GUI)
 rem   downterm            → menu
 rem   downterm --version
 rem   downterm --setup
@@ -14,7 +14,7 @@ rem   downterm --audio-format=m4a|opus|wav|flac  → preset for audio downloads
 rem   downterm --no-embed  → skip thumbnail/metadata embedding
 
 if /i "%~1"=="--version" (
-  echo downterm 4.1.0
+  echo downterm 5.0.0
   exit /b 0
 )
 if /i "%~1"=="--setup" (
@@ -72,19 +72,70 @@ if not defined COOKIES set "COOKIES="
 if not defined AUDIO set "AUDIO=mp3"
 if not defined EMBED set "EMBED=1"
 set "ITEMS="
-if exist "%~dp0downterm.conf" (
-  for /f "usebackq eol=# tokens=1,2 delims==" %%a in ("%~dp0downterm.conf") do (
-    if /i "%%a"=="MODE" set "MODE=%%b"
-    if /i "%%a"=="QUALITY" set "QUALITY=%%b"
-    if /i "%%a"=="OUTPUT" set "ARG_OUTPUT=%%b"
-    if /i "%%a"=="SUBS" set "SUBS=%%b"
-    if /i "%%a"=="FORCE" set "FORCE=%%b"
-    if /i "%%a"=="SPONSORBLOCK" set "SPONSOR=%%b"
-    if /i "%%a"=="COOKIES" set "COOKIES=%%b"
-    if /i "%%a"=="AUDIO_FORMAT" set "AUDIO=%%b"
-    if /i "%%a"=="EMBED" set "EMBED=%%b"
-  )
+set "YT_ARGS="
+set "SUB_LANGS=en.*,en"
+if exist "%~dp0downterm.toml" goto conf_toml
+if exist "%~dp0downterm.conf" goto conf_legacy_migrate
+goto conf_done
+
+:conf_legacy_migrate
+rem legacy .conf -> load vars, then migrate them into downterm.toml
+for /f "usebackq eol=# tokens=1,2 delims==" %%a in ("%~dp0downterm.conf") do (
+  if /i "%%a"=="MODE" set "MODE=%%b"
+  if /i "%%a"=="QUALITY" set "QUALITY=%%b"
+  if /i "%%a"=="OUTPUT" set "ARG_OUTPUT=%%b"
+  if /i "%%a"=="SUBS" set "SUBS=%%b"
+  if /i "%%a"=="FORCE" set "FORCE=%%b"
+  if /i "%%a"=="SPONSORBLOCK" set "SPONSOR=%%b"
+  if /i "%%a"=="COOKIES" set "COOKIES=%%b"
+  if /i "%%a"=="AUDIO_FORMAT" set "AUDIO=%%b"
+  if /i "%%a"=="EMBED" set "EMBED=%%b"
+  if /i "%%a"=="YT_ARGS" set "YT_ARGS=%%b"
+  if /i "%%a"=="SUB_LANGS" set "SUB_LANGS=%%b"
 )
+set "TB_SUBS=true"
+if "!SUBS!"=="0" set "TB_SUBS=false"
+set "TB_FORCE=true"
+if "!FORCE!"=="0" set "TB_FORCE=false"
+set "TB_SPONSOR=true"
+if "!SPONSOR!"=="0" set "TB_SPONSOR=false"
+set "TB_EMBED=true"
+if "!EMBED!"=="0" set "TB_EMBED=false"
+(
+  echo # migrated from downterm.conf (old format is read once, then ignored
+  echo mode = "!MODE!"
+  echo quality = "!QUALITY!"
+  echo output = "!ARG_OUTPUT!"
+  echo subs = !TB_SUBS!
+  echo force = !TB_FORCE!
+  echo sponsorblock = !TB_SPONSOR!
+  echo cookies = "!COOKIES!"
+  echo audio_format = "!AUDIO!"
+  echo embed = !TB_EMBED!
+  echo sub_langs = "!SUB_LANGS!"
+  echo yt_args = "!YT_ARGS!"
+) > "%~dp0downterm.toml"
+goto conf_done
+
+:conf_toml
+for /f "usebackq tokens=1,* delims==" %%a in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$f='%~dp0downterm.toml'; Get-Content -LiteralPath $f | ForEach-Object { $p=$_ -split '=',2; if ($p.Count -eq 2 -and $p[0].Trim() -match '^[A-Za-z_][A-Za-z0-9_]*$') { '{0}={1}' -f $p[0].Trim(), $p[1].Trim().Trim([char]34,[char]39) } }"`) do (
+  if /i "%%a"=="MODE" set "MODE=%%b"
+  if /i "%%a"=="QUALITY" set "QUALITY=%%b"
+  if /i "%%a"=="OUTPUT" set "ARG_OUTPUT=%%b"
+  if /i "%%a"=="SUBS" if /i "%%b"=="true" set "SUBS=1"
+  if /i "%%a"=="SUBS" if /i "%%b"=="false" set "SUBS=0"
+  if /i "%%a"=="FORCE" if /i "%%b"=="true" set "FORCE=1"
+  if /i "%%a"=="FORCE" if /i "%%b"=="false" set "FORCE=0"
+  if /i "%%a"=="SPONSORBLOCK" if /i "%%b"=="true" set "SPONSOR=1"
+  if /i "%%a"=="SPONSORBLOCK" if /i "%%b"=="false" set "SPONSOR=0"
+  if /i "%%a"=="COOKIES" set "COOKIES=%%b"
+  if /i "%%a"=="AUDIO_FORMAT" set "AUDIO=%%b"
+  if /i "%%a"=="EMBED" if /i "%%b"=="true" set "EMBED=1"
+  if /i "%%a"=="EMBED" if /i "%%b"=="false" set "EMBED=0"
+  if /i "%%a"=="SUB_LANGS" set "SUB_LANGS=%%b"
+  if /i "%%a"=="YT_ARGS" set "YT_ARGS=%%b"
+)
+:conf_done
 
 rem per-run flags override the config (work together with the menu)
 for %%a in (%*) do (
@@ -92,6 +143,7 @@ for %%a in (%*) do (
   set "_arg=%%~a"
   if /i "!_arg:~0,10!"=="--cookies=" set "COOKIES=!_arg:~10!"
   if /i "!_arg:~0,15!"=="--audio-format=" set "AUDIO=!_arg:~15!"
+  if /i "!_arg:~0,10!"=="--yt-args=" set "YT_ARGS=!_arg:~10!"
 )
 
 rem first launch: offer PATH install so "downterm" works in PowerShell/cmd
@@ -100,7 +152,7 @@ if not exist "%~dp0.downterm_path_ok" call :maybe_install_path
 :menu
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%4.1.0%R%
+echo   %ACC%downterm%R%  %FAINT%5.0.0%R%
 echo   %HAIR%..........................................%R%
 echo.
 echo   %MUT%pick a number, then paste a link.%R%
@@ -242,12 +294,34 @@ echo   %INK%1%R%  download now
 echo   %INK%2%R%  + english subs
 echo   %INK%3%R%  + sponsorblock
 echo   %INK%4%R%  + both
+echo   %INK%5%R%  sub-langs
 echo.
-choice /c 1234 /n /m "  %MUT%>%R% "
+choice /c 12345 /n /m "  %MUT%>%R% "
 set "E=!errorlevel!"
 if "!E!"=="2" set "SUBS=1"
 if "!E!"=="3" set "SPONSOR=1"
 if "!E!"=="4" set "SUBS=1" & set "SPONSOR=1"
+if "!E!"=="5" goto sub_langs
+goto rundl
+
+:sub_langs
+echo.
+echo   %MUT%subtitle language%R%   %FAINT%current: !SUB_LANGS!%R%
+echo   %INK%1%R%  en.*,en
+echo   %INK%2%R%  all
+echo   %INK%3%R%  es,en
+echo   %INK%4%R%  custom
+echo.
+choice /c 1234 /n /m "  %MUT%>%R% "
+set "SL=!errorlevel!"
+if "!SL!"=="2" set "SUB_LANGS=all"
+if "!SL!"=="3" set "SUB_LANGS=es,en"
+if "!SL!"=="4" (
+  echo.
+  set /p "SUB_LANGS=  %MUT%languages (%FAINT%e.g. en.*,es%R%): "
+)
+set "SUBS=1"
+echo   %FAINT%subtitles: %SUB_LANGS%%R%
 goto rundl
 
 :rundl
@@ -263,14 +337,16 @@ echo   %FAINT%!url!%R%
 echo.
 echo   %HAIR%------------------------------------------%R%
 echo.
-if not exist "yt-dlp.exe" (
-  echo   %BAD%yt-dlp.exe missing — press 6 for setup%R%
+set "YTDLP=yt-dlp.exe"
+if /i "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "YTDLP=yt-dlp_arm64.exe"
+if not exist "!YTDLP!" (
+  echo   %BAD%!YTDLP! missing — press 6 for setup%R%
   pause>nul
   goto menu
 )
 set "FFARG="
 if exist "ffmpeg.exe" set "FFARG=.\ffmpeg.exe"
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "!url!" "%FFARG%" "!MODE!" "!QUALITY!" "!ARG_OUTPUT!" "!SUBS!" "!FORCE!" "!SPONSOR!" "!COOKIES!" "!AUDIO!" "!ITEMS!" "!EMBED!"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0filter.ps1" "!url!" "%FFARG%" "!MODE!" "!QUALITY!" "!ARG_OUTPUT!" "!SUBS!" "!FORCE!" "!SPONSOR!" "!COOKIES!" "!AUDIO!" "!ITEMS!" "!EMBED!" "!YT_ARGS!" "!SUB_LANGS!"
 set "ec=!errorlevel!"
 echo.
 echo   %HAIR%------------------------------------------%R%
@@ -333,9 +409,11 @@ goto rundl
 :playlist
 call :getclip
 if errorlevel 1 goto menu
-if not exist "yt-dlp.exe" (
+set "YTDLP=yt-dlp.exe"
+if /i "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "YTDLP=yt-dlp_arm64.exe"
+if not exist "!YTDLP!" (
   echo.
-  echo   %BAD%yt-dlp.exe missing — press 6 for setup%R%
+  echo   %BAD%!YTDLP! missing — press 6 for setup%R%
   pause>nul
   goto menu
 )
@@ -347,7 +425,7 @@ echo.
 set "PLF=%~dp0.downterm_playlist"
 del /q "%PLF%" 2>nul
 echo   %FAINT%scanning playlist ...%R%
-yt-dlp.exe --flat-playlist --print "%%(id)s^|%%(title)s" --no-warnings "!url!" > "%PLF%" 2>nul
+!YTDLP! --flat-playlist --print "%%(id)s^|%%(title)s" --no-warnings "!url!" > "%PLF%" 2>nul
 set "PLN=0"
 for /f "usebackq delims=" %%z in ("%PLF%") do (
   set /a PLN+=1
@@ -410,7 +488,7 @@ goto menu
 :maybe_install_path
 cls
 echo.
-echo   %ACC%downterm%R%  %FAINT%4.1.0%R%
+echo   %ACC%downterm%R%  %FAINT%5.0.0%R%
 echo   %HAIR%..........................................%R%
 echo.
 echo   %MUT%make typing%R%  %INK%downterm%R%  %MUT%work in PowerShell / cmd?%R%
@@ -471,7 +549,7 @@ exit /b 0
 :help
 cls
 echo.
-echo   %ACC%help%R%  %FAINT%4.1.0%R%
+echo   %ACC%help%R%  %FAINT%5.0.0%R%
 echo   %HAIR%..........................................%R%
 echo.
 echo   %MUT%terminal only — number menu, no window app%R%
@@ -511,15 +589,16 @@ echo.
 echo   %ACC%update%R%
 echo   %HAIR%..........................................%R%
 echo.
-if exist "yt-dlp.exe" (
-  echo   %FAINT%refreshing yt-dlp to the pinned version ...%R%
+set "YTDLP=yt-dlp.exe"
+set "PINKEY=yt-dlp_windows "
+if /i "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "YTDLP=yt-dlp_arm64.exe" & set "PINKEY=yt-dlp_windows_arm64 "
+if exist "!YTDLP!" (
+  echo   %FAINT%refreshing !YTDLP! to the pinned version ...%R%
 ) else (
-  echo   %FAINT%fetching yt-dlp ...%R%
+  echo   %FAINT%fetching !YTDLP! ...%R%
 )
-set "PIN_URL="
-set "PIN_HASH="
 if exist "bin\checksums.txt" (
-  for /f "tokens=1,2,3,4" %%a in ('type bin\checksums.txt ^| findstr /b /i "yt-dlp_windows "') do (
+  for /f "tokens=1,2,3,4" %%a in ('type bin\checksums.txt ^| findstr /b /i "!PINKEY!"') do (
     set "PIN_HASH=%%c"
     set "PIN_URL=%%d"
   )
@@ -529,31 +608,31 @@ if not defined PIN_URL (
   pause>nul
   goto menu
 )
-curl.exe -L --max-time 300 -o "yt-dlp.exe.tmp" "!PIN_URL!" 2>nul
-if not exist "yt-dlp.exe.tmp" (
+curl.exe -L --max-time 300 -o "!YTDLP!.tmp" "!PIN_URL!" 2>nul
+if not exist "!YTDLP!.tmp" (
   echo   %BAD%download failed%R%
   pause>nul
   goto menu
 )
 set "ACTUAL="
-for /f "skip=1 tokens=* delims=" %%i in ('certutil -hashfile "yt-dlp.exe.tmp" SHA256') do (
+for /f "skip=1 tokens=* delims=" %%i in ('certutil -hashfile "!YTDLP!.tmp" SHA256') do (
   if not defined ACTUAL set "ACTUAL=%%i"
 )
 set "ACTUAL=!ACTUAL: =!"
 set "ACTUAL=!ACTUAL:~0,64!"
 if /i not "!ACTUAL!"=="!PIN_HASH!" (
-  del /q "yt-dlp.exe.tmp" 2>nul
+  del /q "!YTDLP!.tmp" 2>nul
   echo   %BAD%checksum mismatch — not replaced%R%
   pause>nul
   goto menu
 )
-move /y "yt-dlp.exe.tmp" "yt-dlp.exe" >nul
-echo   %GOOD%yt-dlp refreshed.%R%
+move /y "!YTDLP!.tmp" "!YTDLP!" >nul
+echo   %GOOD%!YTDLP! refreshed.%R%
 echo.
 echo   %FAINT%checking for a newer downterm wrapper ...%R%
 set "LATEST="
 for /f "usebackq delims=" %%l in (`powershell -NoProfile -Command "try { (Invoke-RestMethod 'https://api.github.com/repos/onion3130/downterm/releases/latest').tag_name } catch { '' }"`) do set "LATEST=%%l"
-if not "!LATEST!"=="4.1.0" (
+if not "!LATEST!"=="5.0.0" (
   if "!LATEST!"=="" (
     echo   %WARN%sorry, could not reach GitHub right now.%R%
   ) else (
@@ -568,7 +647,7 @@ if not "!LATEST!"=="4.1.0" (
     )
   )
 ) else (
-  echo   %GOOD%downterm scripts are up to date ^(4.1.0^).%R%
+  echo   %GOOD%downterm scripts are up to date ^(5.0.0^).%R%
 )
 echo.
 echo   %FAINT%any key...%R%

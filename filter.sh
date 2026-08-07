@@ -15,6 +15,8 @@ cookies="${10:-}"
 audio="${11:-mp3}"
 items="${12:-}"
 embed="${13:-1}"
+yt_args="${14:-}"
+sub_langs="${15:-en.*,en}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || echo .)"
 
@@ -76,7 +78,7 @@ if [ -n "$cookies" ]; then
 fi
 
 if [ "$mode" != "audio" ] && { [ "$subs" = "1" ] || [ "$subs" = "yes" ] || [ "$subs" = "true" ]; }; then
-  args+=(--write-auto-subs --write-subs --sub-langs "en.*,en" --embed-subs --convert-subs srt)
+  args+=(--write-auto-subs --write-subs --sub-langs "$sub_langs" --embed-subs --convert-subs srt)
 fi
 
 if [ "$force" = "1" ] || [ "$force" = "yes" ] || [ "$force" = "true" ]; then
@@ -95,6 +97,11 @@ fi
 
 if [ "$embed" = "1" ] || [ "$embed" = "yes" ] || [ "$embed" = "true" ]; then
   args+=(--embed-thumbnail --embed-metadata)
+fi
+
+if [ -n "$yt_args" ]; then
+  # shellcheck disable=SC2206
+  args+=($yt_args)
 fi
 
 args+=("$url")

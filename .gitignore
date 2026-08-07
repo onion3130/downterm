@@ -5,6 +5,7 @@
 .downterm_path_ok
 .downterm_playlist
 downterm.conf
+downterm.toml
 *.part
 *.temp
 

@@ -1,4 +1,4 @@
-﻿# downterm installer - Windows
+# downterm installer - Windows
 #
 #   irm https://raw.githubusercontent.com/onion3130/downterm/main/install.ps1 | iex
 #

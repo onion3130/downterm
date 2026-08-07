@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# downterm 4.1.0 — minimal terminal UI (numbers only). no window GUI.
+# downterm 5.0.0 — minimal terminal UI (numbers only). no window GUI.
 #   downterm              → menu
 #   downterm --version
 #   downterm --update     → refresh yt-dlp (pinned) + check wrapper updates
@@ -72,7 +72,7 @@ for _a in "$@"; do
 done
 
 case "${1:-}" in
-  --version) echo "downterm 4.1.0"; exit 0 ;;
+  --version) echo "downterm 5.0.0"; exit 0 ;;
   --install)
     mkdir -p "$HOME/.local/bin"
     ln -sfn "$SCRIPT_DIR/download.sh" "$HOME/.local/bin/downterm"
@@ -94,7 +94,7 @@ case "${1:-}" in
     printf "  refreshing tools (yt-dlp / deno) to pinned versions ...\n"
     bash "$SCRIPT_DIR/setup.sh" --force-tools 2>/dev/null || true
     lt=$(curl -fsSL --max-time 15 "https://api.github.com/repos/onion3130/downterm/releases/latest" 2>/dev/null | grep '"tag_name"' | head -1 | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
-    if [ -n "$lt" ] && [ "$lt" != "4.1.0" ]; then
+    if [ -n "$lt" ] && [ "$lt" != "5.0.0" ]; then
       printf "\n  a newer downterm is available: %s\n" "$lt"
       printf "  downloading into %s ...\n" "$SCRIPT_DIR"
       if tmp=$(mktemp -d) && curl -fsSL --max-time 120 -o "$tmp/dl.tar.gz" "https://github.com/onion3130/downterm/archive/refs/tags/$lt.tar.gz" && tar -xzf "$tmp/dl.tar.gz" -C "$tmp" --strip-components=1; then
@@ -263,7 +263,7 @@ install_path() {
 menu() {
   while true; do
     clear
-    printf "\n  ${ACC}downterm${R}  ${FAINT}4.1.0${R}\n"
+    printf "\n  ${ACC}downterm${R}  ${FAINT}5.0.0${R}\n"
     printf "  ${HAIR}..........................................${R}\n\n"
     printf "  ${MUT}pick a number, then paste a link.${R}\n\n"
     printf "  ${INK}1${R}  best video\n"
@@ -320,7 +320,7 @@ menu() {
       7) install_path ;;
       8)
         clear
-        printf "\n  ${ACC}help${R}  ${FAINT}4.1.0${R}\n\n"
+        printf "\n  ${ACC}help${R}  ${FAINT}5.0.0${R}\n\n"
         printf "  Copy a link → press 1 for best video.\n"
         printf "  Press 7 once (or: ./download.sh --install)\n"
         printf "  Open a NEW shell → type:  downterm\n\n"
