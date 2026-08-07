@@ -3,25 +3,12 @@
 > a quiet terminal wrapper around [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
 **Copy a link → type `downterm` → press a number.**  
-Minimal terminal UI. No window app.
-
-[![self-test](https://github.com/onion3130/downterm/actions/workflows/test.yml/badge.svg)](https://github.com/onion3130/downterm/actions/workflows/test.yml)
-
-**Current:** `3.4.0`
-
----
-
-# downterm
-
-> a quiet terminal wrapper around [yt-dlp](https://github.com/yt-dlp/yt-dlp)
-
-**Copy a link → type `downterm` → press a number.**  
 Minimal terminal UI. No window app. No Electron. Nothing to configure.
 
 [![self-test](https://github.com/onion3130/downterm/actions/workflows/test.yml/badge.svg)](https://github.com/onion3130/downterm/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Current:** `4.0.0`
+**Current:** `4.1.0`
 
 ---
 
@@ -125,13 +112,14 @@ download.bat --uninstall
   0  playlist · pick items
 ```
 
-### what's built in (v4.0)
+### what's built in (v4.1)
 
+- **Real self-update** — `downterm --update` now downloads and replaces the wrapper scripts when a newer release exists (not just a link)
+- **Dumb-terminal safe** — colors turn off automatically with `NO_COLOR`, `TERM=dumb`, or piped output
 - **Playlist picker** — press `0`, paste a playlist, choose `all` / `1-3` / `2,5,7`
 - **Cookies** — restricted content: `downterm --cookies=cookies.txt` (or `COOKIES=` in `downterm.conf`)
 - **Audio formats** — option `3` picks `mp3` / `m4a` / `opus` / `wav`; also `--audio-format=flac|aac`
 - **Metadata** — title + thumbnail are embedded by default (`--no-embed` to skip)
-- **Self-update** — `downterm --update` refreshes yt-dlp (pinned + hash-verified) and checks for a newer downterm
 - **Quiet progress bar** — speed + ETA, one line, no spam
 
 ### options
@@ -187,7 +175,9 @@ Or set permanent defaults in **`downterm.conf`** (see `downterm.conf.example`).
 
 ## releases
 
-- **`4.0.0`** — one-line installers; **playlist picker** (option `0`); **cookies** (`--cookies=…`); **audio formats** (`m4a`/`opus`/`wav`); **embed title + thumbnail** by default (`--no-embed`); **self-update** (`--update`, pin-verified yt-dlp + wrapper check); `ERR-14` for missing cookie files
+- **`4.1.0`** — **real self-update** (downloads + replaces wrappers, not just a message); **paste-prompt** for links with clipboard as Enter-default; **`NO_COLOR` / `TERM=dumb` / piped** output support; non-interactive `--setup` (CI-safe); CI timeout guards
+
+- **`4.0.0`** — one-line installers; **playlist picker** (option `0`); **cookies** (`--cookies=…`); **audio formats** (`m4a`/`opus`/`wav`); **embed title + thumbnail** by default (`--no-embed`); **self-update check** (`--update`, pin-verified yt-dlp); `ERR-14` for missing cookie files
 
 - **`3.4.0`** — Linux/macOS now report actionable HTTP, connection, ffmpeg, and deno error codes consistently with Windows
 

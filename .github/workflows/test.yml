@@ -29,7 +29,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
-          bash ./download.sh --setup
+          timeout 300 bash ./download.sh --setup
           if [ ! -x ./yt-dlp ]; then
             echo "::error::setup failed - ./yt-dlp not present after download.sh --setup"
             exit 1
@@ -60,7 +60,7 @@ jobs:
           chmod +x ./filter.sh
           YT=./yt-dlp
           [ -x "$YT" ] || YT=yt-dlp
-          bash ./filter.sh "https://media.w3.org/2010/05/sintel/trailer.mp4" "$(command -v ffmpeg || true)" "$YT" video best "" 0 1 0
+          timeout 300 bash ./filter.sh "https://media.w3.org/2010/05/sintel/trailer.mp4" "$(command -v ffmpeg || true)" "$YT" video best "" 0 0 0 "" mp3 "" 1
           rm -f ./*.mp4 ./*.mkv ./*.webm 2>/dev/null || true
 
       - name: self-test filter (Windows)
@@ -69,5 +69,5 @@ jobs:
         run: |
           $ff = if (Test-Path .\ffmpeg.exe) { '.\ffmpeg.exe' } else { '' }
           & powershell -NoProfile -ExecutionPolicy Bypass -File .\filter.ps1 `
-            'https://media.w3.org/2010/05/sintel/trailer.mp4' $ff video best '' 0 1 0
+            'https://media.w3.org/2010/05/sintel/trailer.mp4' $ff video best '' 0 0 '' 0 mp3 '' 1
           Get-ChildItem -Include *.mp4,*.mkv,*.webm -File -ErrorAction SilentlyContinue | Remove-Item -Force
