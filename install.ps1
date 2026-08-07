@@ -1,4 +1,4 @@
-# downterm installer — Windows
+﻿# downterm installer - Windows
 #
 #   irm https://raw.githubusercontent.com/onion3130/downterm/main/install.ps1 | iex
 #
@@ -27,7 +27,7 @@ try {
   $rel = Invoke-RestMethod -Uri $Api -Headers @{ 'User-Agent' = 'downterm-installer' }
   $tag = $rel.tag_name
 } catch {
-  Write-Warn 'could not reach GitHub — check your connection, then try again.'
+  Write-Warn 'could not reach GitHub - check your connection, then try again.'
   exit 1
 }
 Write-Step "latest release:  $tag"
@@ -38,7 +38,7 @@ Write-Step 'downloading downterm ...'
 try {
   Invoke-WebRequest -Uri "https://github.com/$Repo/archive/refs/tags/$tag.zip" -OutFile $zip
 } catch {
-  Write-Warn "download failed — got: $($_.Exception.Message)"
+  Write-Warn "download failed - got: $($_.Exception.Message)"
   Remove-Item -Recurse -Force $Tmp -ErrorAction SilentlyContinue
   exit 1
 }

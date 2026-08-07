@@ -1,4 +1,4 @@
-# downterm setup (Windows)
+﻿# downterm setup (Windows)
 # - fetches yt-dlp / ffmpeg / deno (if missing)
 # - ALWAYS adds this folder to user PATH so "downterm" works
 #
@@ -32,7 +32,7 @@ Write-Host ""
 if (-not $PathOnly) {
   $checksums = Join-Path $Root 'bin\checksums.txt'
   if (-not (Test-Path $checksums)) {
-    Write-Bad "bin\checksums.txt missing — cannot fetch tools."
+    Write-Bad "bin\checksums.txt missing - cannot fetch tools."
     exit 1
   }
 
@@ -54,7 +54,7 @@ if (-not $PathOnly) {
   function Get-FileVerified($destName, $pin, $isZip, $extractScript) {
     $dest = Join-Path $Root $destName
     if ((Test-Path $dest) -and -not $ForceTools) {
-      Write-Host "  $destName already present — skip"
+      Write-Host "  $destName already present - skip"
       return
     }
     if (-not $pin) {
@@ -149,6 +149,6 @@ Write-Host ""
 Write-Host "  Manual PATH only (anytime):" -ForegroundColor DarkGray
 Write-Host "    setup.bat -PathOnly"
 Write-Host "    download.bat --install"
-Write-Host "    menu → 7"
+Write-Host "    menu - 7"
 Write-Host ""
 exit 0
