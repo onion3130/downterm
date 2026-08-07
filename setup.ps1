@@ -65,7 +65,7 @@ if (-not $PathOnly) {
     $tmp = Join-Path $Root ($destName + '.tmp')
     if ($isZip) { $tmp = Join-Path $Root ($destName + '.zip.tmp') }
     try {
-      curl.exe -L --max-time 600 -o $tmp $pin.Url 2>$null
+      curl.exe -sL --max-time 600 -o $tmp $pin.Url 2>$null
       if (-not (Test-Path $tmp)) { throw "download failed" }
       $actual = Get-Sha256 $tmp
       if ($actual -ne $pin.Hash.ToLowerInvariant()) {
