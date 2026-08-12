@@ -208,7 +208,8 @@ if "!url!"=="" (
   pause>nul
   goto getclip_ask
 )
-echo.!url! | findstr /r /c:"^https\?://" >nul
+echo.!url! | findstr /r /c:"^https://" >nul
+if errorlevel 1 echo.!url! | findstr /r /c:"^http://" >nul
 if errorlevel 1 (
   echo   %BAD%not a link — needs http:// or https://%R%
   echo.
